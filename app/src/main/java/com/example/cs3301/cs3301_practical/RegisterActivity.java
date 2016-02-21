@@ -40,17 +40,15 @@ public class RegisterActivity extends Activity implements View.OnClickListener {
                 String username = etUsername.getText().toString();
                 //String strAge = etAge.getText().toString();
                 String password = etPassword.getText().toString();
-                int age = Integer.parseInt(etAge.getText().toString());
+                String age = etAge.getText().toString();
 
-                Client registerClientDetails = new Client(name, username, password, age);
-                registerClient(registerClientDetails);
+                if (isValidRegistrationValues(name, age, username, password)) {
+                    Client registerClientDetails = new Client(name, username, password, Integer.parseInt(age));
+                    registerClient(registerClientDetails);
+                }
 
                 break;
         }
-    }
-
-    private boolean isValidRegistration(String name, String strAge, String username, String password) {
-        return false;
     }
 
     private void registerClient(Client client){
@@ -63,4 +61,79 @@ public class RegisterActivity extends Activity implements View.OnClickListener {
         });
     }
 
+
+    /* Form validation methods  */
+
+    private boolean isValidRegistrationValues(String name, String strAge,
+                                              String username, String password) {
+        if (isValidName(name)) {
+            if (isValidUsername(username)) {
+                if (isValidPassword(password)) {
+                    if (isValidAge(strAge)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    private boolean isValidName(String name) {
+        if (name.length() == 0) {
+            etName.setError("Please specify a name");
+            return false;
+        } else if (name.length() > 100) {
+            etName.setError("Name can only be up to 100 Characters");
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private boolean isValidAge(String strAge) {
+        int age;
+        try {
+            age = Integer.parseInt(strAge);
+        } catch (NumberFormatException e) {
+            etAge.setError("Age must be a number");
+            return false;
+        }
+        if (age >= 16 && age <= 150) {
+            return true;
+        } else {
+            etAge.setError("Age should be a number between 16 and 150");
+            return false;
+        }
+    }
+
+    private boolean isValidUsername(String username) {
+        if (username.length() == 0) {
+            etUsername.setError("Please specify a username");
+            return false;
+        } else if (username.length() > 100) {
+            etUsername.setError("Username can only be up to 100 characters");
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private boolean isValidPassword(String password) {
+        if (password.length() == 0) {
+            etPassword.setError("Please specify a password");
+            return false;
+        } else if (password.length() > 100) {
+            etPassword.setError("Password can only be up to 100 characters");
+            return false;
+        } else {
+            return true;
+        }
+    }
 }

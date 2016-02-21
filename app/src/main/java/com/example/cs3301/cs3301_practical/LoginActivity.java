@@ -44,11 +44,14 @@ public class LoginActivity extends Activity implements View.OnClickListener {
                 String username = etUsername.getText().toString();
                 String password = etPassword.getText().toString();
 
-                Client client = new Client(username,password);
-                authenticate(client);
+                if (isValidRegistrationValues(username, password)) {
+                    Client client = new Client(username, password);
+                    authenticate(client);
 
-                clientLocalStore.storeClientData(client);
-                clientLocalStore.setClientLoggedIn(true);
+                    clientLocalStore.storeClientData(client);
+                    clientLocalStore.setClientLoggedIn(true);
+                }
+
                 break;
 
             // when register link is clicked move to Register Activity
@@ -75,6 +78,37 @@ public class LoginActivity extends Activity implements View.OnClickListener {
         });
 
     }
+
+    /* Form validation for username and password */
+
+    private boolean isValidRegistrationValues(String username, String password) {
+        return isValidUsername(username) && isValidPassword(password);
+    }
+
+    private boolean isValidUsername(String username) {
+        if (username.length() == 0) {
+            etUsername.setError("Please specify a username");
+            return false;
+        } else if (username.length() > 100) {
+            etUsername.setError("Username can only be up to 100 characters");
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private boolean isValidPassword(String password) {
+        if (password.length() == 0) {
+            etPassword.setError("Please specify a password");
+            return false;
+        } else if (password.length() > 100) {
+            etPassword.setError("Password can only be up to 100 characters");
+            return false;
+        } else {
+            return true;
+        }
+    }
+
 
     private void showErrorMessage(){
         AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(LoginActivity.this);

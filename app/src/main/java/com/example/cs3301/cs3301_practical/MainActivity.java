@@ -9,6 +9,7 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
@@ -63,7 +64,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onStart() {
         super.onStart();
 
-        if(authenticate()){
+        if (authenticate()) {
             displayClientDetails();
         } else {
             startActivity(new Intent(MainActivity.this, LoginActivity.class));
@@ -71,12 +72,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     // tells if user is logged in or out
-    private boolean authenticate(){
+    private boolean authenticate() {
         // returns true if user is logged in
         return clientLocalStore.getClientLoggedin();
     }
 
-    private void displayClientDetails(){
+    private void displayClientDetails() {
         Client client = clientLocalStore.getLoggedInClient();
 
         etUsername.setText(client.username);
@@ -85,8 +86,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     @Override
-    public void onClick(View view){
-        switch (view.getId()){
+    public void onClick(View view) {
+        switch (view.getId()) {
             case R.id.bLogout:
                 clientLocalStore.clearClientData();
                 clientLocalStore.setClientLoggedIn(false);
@@ -134,6 +135,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     LocationManager locationManager;
+
     private void setUpMap() {
         // Enable MyLocation Layer of Google Map
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -152,29 +154,34 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             String provider = locationManager.getBestProvider(criteria, true);
 
             // Check provider is avaliable
-            if(locationManager.isProviderEnabled(provider)){
+            if (locationManager.isProviderEnabled(provider)) {
                 // Get Current Location
-                Location myLocation =  getLastKnownLocation();
-                //locationManager.getLastKnownLocation(provider);
+                Location myLocation = getLastKnownLocation();
+                if (myLocation != null) {
 
-                //set map type
-                mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
-                // Get latitude of the current location
-                double latitude = myLocation.getLatitude();
+                    //locationManager.getLastKnownLocation(provider);
 
-                // Get longitude of the current location
-                double longitude = myLocation.getLongitude();
+                    //set map type
+                    mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
-                // Create a LatLng object for the current location
-                LatLng latLng = new LatLng(latitude, longitude);
+                    // Get latitude of the current location
+                    double latitude = myLocation.getLatitude();
 
-                mMap.addMarker(new MarkerOptions().position(latLng).title("You are here!"));
-                mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
+                    // Get longitude of the current location
+                    double longitude = myLocation.getLongitude();
 
-                zoomToLocation(latLng);
-            }
-            else {
+                    // Create a LatLng object for the current location
+                    LatLng latLng = new LatLng(latitude, longitude);
+
+                    mMap.addMarker(new MarkerOptions().position(latLng).title("You are here!"));
+                    mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
+                    zoomToLocation(latLng);
+                } else {
+                    // display error
+                    Log.e("SudoUber", "Perms check failed");
+                }
+            } else {
                 // provider not avaliable
                 Log.e("SudoUber", "Provider not avaliable error");
             }
@@ -186,15 +193,19 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private Location getLastKnownLocation() {
-        locationManager = (LocationManager)getApplicationContext().getSystemService(LOCATION_SERVICE);
+        locationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
         List<String> providers = locationManager.getProviders(true);
         Location bestLocation = null;
         for (String provider : providers) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+                return null;
+            }
             Location l = locationManager.getLastKnownLocation(provider);
             if (l == null) {
                 continue;
             }
-            if (bestLocation == null || l.getAccuracy() < bestLocation.getAccuracy()) {
+            if (bestLocation == null || l.getAccuracy() > bestLocation.getAccuracy()) {
                 // Found best last known location: %s", l);
                 bestLocation = l;
             }
