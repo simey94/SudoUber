@@ -8,16 +8,13 @@ import android.location.Criteria;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
-import android.nfc.Tag;
-import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
-import android.view.MenuInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.PopupMenu;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -25,10 +22,10 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -172,12 +169,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 // Create a LatLng object for the current location
                 LatLng latLng = new LatLng(latitude, longitude);
 
-                // Show the current location in Google Map
-                mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+                mMap.addMarker(new MarkerOptions().position(latLng).title("You are here!"));
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
 
-                // Zoom in the Google Map
-                mMap.addMarker(new MarkerOptions().position(new LatLng(latitude, longitude)).title("You are here!"));
-                //mMap.animateCamera(CameraUpdateFactory.zoomTo(20));
+                zoomToLocation(latLng);
             }
             else {
                 // provider not avaliable
@@ -214,7 +209,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         List<Address> addressList = null;
 
-        if(location != null || !(location != "")){
+        if (location != null || !(location != "")) {
 
             Geocoder geocoder = new Geocoder(this);
             try {
@@ -226,11 +221,21 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             // Fetch address
             Address address = addressList.get(0);
             LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
-            mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
-            mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
-            //mMap.animateCamera(CameraUpdateFactory.zoomTo(20));
 
+            mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
+            zoomToLocation(latLng);
         }
+    }
+
+    // Zooms in Maps to location specified in param
+    private void zoomToLocation(LatLng latLng) {
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(latLng)
+                .zoom(17)
+                .bearing(0)
+                .tilt(40)
+                .build();
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
     }
 
     public void changeType(View view){
