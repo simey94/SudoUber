@@ -16,14 +16,22 @@ public class PopUpMenuEventHandler implements PopupMenu.OnMenuItemClickListener 
 
     @Override
     public boolean onMenuItemClick(MenuItem item) {
-        if(item.getItemId() == R.id.id_item1){
-            Toast.makeText(context, "Item 1 selected", Toast.LENGTH_LONG).show();
+        if (item.getItemId() == R.id.id_name) {
+            Toast.makeText(context, "Name Selected", Toast.LENGTH_LONG).show();
+            return true;
+        } else if (item.getItemId() == R.id.id_username) {
+            Toast.makeText(context, "Username selected", Toast.LENGTH_LONG).show();
+            return true;
+        } else if (item.getItemId() == R.id.id_age) {
+            Toast.makeText(context, "Age selected", Toast.LENGTH_LONG).show();
+            return true;
+        } else if (item.getItemId() == R.id.id_logout) {
+            //clientLocalStore.clearClientData();
+            //clientLocalStore.setClientLoggedIn(false);
+            //context.startActivity(new Intent(this.context, LoginActivity.class));
             return true;
         }
-        else if (item.getItemId() == R.id.id_item2){
-            Toast.makeText(context, "Item 2 selected", Toast.LENGTH_LONG).show();
-            return true;
-        }
+
         return false;
     }
 }

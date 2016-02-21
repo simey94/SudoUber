@@ -89,8 +89,8 @@ public class RegisterActivity extends Activity implements View.OnClickListener {
         if (name.length() == 0) {
             etName.setError("Please specify a name");
             return false;
-        } else if (name.length() > 100) {
-            etName.setError("Name can only be up to 100 Characters");
+        } else if (name.length() > 25) {
+            etName.setError("Name can only be up to 25 Characters");
             return false;
         } else {
             return true;
@@ -105,10 +105,10 @@ public class RegisterActivity extends Activity implements View.OnClickListener {
             etAge.setError("Age must be a number");
             return false;
         }
-        if (age >= 16 && age <= 150) {
+        if (age >= 16 && age <= 100) {
             return true;
         } else {
-            etAge.setError("Age should be a number between 16 and 150");
+            etAge.setError("Age should be a number between 16 and 100");
             return false;
         }
     }
@@ -117,8 +117,8 @@ public class RegisterActivity extends Activity implements View.OnClickListener {
         if (username.length() == 0) {
             etUsername.setError("Please specify a username");
             return false;
-        } else if (username.length() > 100) {
-            etUsername.setError("Username can only be up to 100 characters");
+        } else if (username.length() > 25) {
+            etUsername.setError("Username can only be up to 25 characters");
             return false;
         } else {
             return true;
@@ -129,8 +129,8 @@ public class RegisterActivity extends Activity implements View.OnClickListener {
         if (password.length() == 0) {
             etPassword.setError("Please specify a password");
             return false;
-        } else if (password.length() > 100) {
-            etPassword.setError("Password can only be up to 100 characters");
+        } else if (password.length() > 25) {
+            etPassword.setError("Password can only be up to 25 characters");
             return false;
         } else {
             return true;

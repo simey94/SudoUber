@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/id_item1" android:title="item1"></item>
-    <item android:id="@+id/id_item2" android:title="item2"></item>
+    <item
+        android:id="@+id/id_name"
+        android:title="Name: "></item>
+    <item
+        android:id="@+id/id_username"
+        android:title="Username: "></item>
+    <item
+        android:id="@+id/id_age"
+        android:title="Age: "></item>
+    <item
+        android:id="@+id/id_logout"
+        android:title="Logout"></item>
 </menu>

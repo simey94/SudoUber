@@ -13,9 +13,12 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.PopupMenu;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -33,7 +36,8 @@ import java.util.List;
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
 
     private GoogleMap mMap;
-    Button bLogout;
+    Button bAccount;
+    PopupMenu popupMenu;
     EditText etName, etAge, etUsername;
     ClientLocalStore clientLocalStore;
     private static final String TAG = "MainActivity";
@@ -47,9 +51,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         etName = (EditText) findViewById(R.id.etName);
         etAge = (EditText) findViewById(R.id.etAge);
         etUsername = (EditText) findViewById(R.id.etUsername);
-        bLogout = (Button) findViewById(R.id.bLogout);
+        bAccount = (Button) findViewById(R.id.bAccount);
 
-        bLogout.setOnClickListener(this);
+        bAccount.setOnClickListener(this);
 
         clientLocalStore = new ClientLocalStore(this);
 
@@ -64,9 +68,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onStart() {
         super.onStart();
 
-        if (authenticate()) {
-            displayClientDetails();
-        } else {
+        if (!authenticate()) {
             startActivity(new Intent(MainActivity.this, LoginActivity.class));
         }
     }
@@ -77,26 +79,41 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return clientLocalStore.getClientLoggedin();
     }
 
-    private void displayClientDetails() {
-        Client client = clientLocalStore.getLoggedInClient();
-
-        etUsername.setText(client.username);
-        etName.setText(client.name);
-        etAge.setText(client.age + "");
-    }
-
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            case R.id.bLogout:
-                clientLocalStore.clearClientData();
-                clientLocalStore.setClientLoggedIn(false);
+            case R.id.bAccount:
+                Log.e("HERE", "In bAccount");
+                // Create drop down to show options
+                popupMenu = new PopupMenu(this, bAccount);
+                MenuInflater menuInflater = popupMenu.getMenuInflater();
+                menuInflater.inflate(R.menu.popup_actions, popupMenu.getMenu());
+                Log.e("HERE", "Created popum");
+                //get client info
+                Client client = clientLocalStore.getLoggedInClient();
+                // loop through menu items
+                popupMenu.getMenu().findItem(R.id.id_name).setTitle("Name: " + client.name);
+                popupMenu.getMenu().findItem(R.id.id_username).setTitle("Username: " + client.username);
+                popupMenu.getMenu().findItem(R.id.id_age).setTitle("Age: " + client.age);
+                popupMenu.getMenu().findItem(R.id.id_logout).setTitle("Logout");
 
+                Log.e("HERE", "Created a lot of things");
+                // click handler
+                popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    public boolean onMenuItemClick(MenuItem item) {
+                        if (item.getItemId() == R.id.id_logout) {
+                            Log.e("HERE", "In logout");
+                            clientLocalStore.clearClientData();
+                            clientLocalStore.setClientLoggedIn(false);
+                            startActivity(new Intent(MainActivity.this, LoginActivity.class));
+                        }
+                        return true;
+                    }
+                });
+                popupMenu.show();
 
-                startActivity(new Intent(this, LoginActivity.class));
                 break;
         }
-
     }
 
 
@@ -129,7 +146,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         markerOptions.icon(loaded_icon);
 
         mMap.addMarker(markerOptions);
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(position));
+        //mMap.moveCamera(CameraUpdateFactory.newLatLng(position));
 
         setUpMap();
     }
@@ -262,15 +279,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     // When user clicks book taxi button
     public void onClickBookTaxi(View view){
-        // Create drop down to show options
-//        PopupMenu popupMenu = new PopupMenu(this, view);
-//        MenuInflater menuInflater = popupMenu.getMenuInflater();
-//        menuInflater.inflate(R.menu.popup_actions, popupMenu.getMenu());
-//        PopUpMenuEventHandler popUpMenuEventHandler = new PopUpMenuEventHandler(getApplicationContext());
-//        popupMenu.setOnMenuItemClickListener(popUpMenuEventHandler);
-//        popupMenu.show();
-
-       startActivity(new Intent(MainActivity.this, BookingActivity.class));
+        startActivity(new Intent(MainActivity.this, BookingActivity.class));
 
     }
 
