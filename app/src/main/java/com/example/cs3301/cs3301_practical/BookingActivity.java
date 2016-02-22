@@ -2,11 +2,18 @@ package com.example.cs3301.cs3301_practical;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
 
 
 public class BookingActivity extends Activity implements View.OnClickListener {
@@ -53,19 +60,57 @@ public class BookingActivity extends Activity implements View.OnClickListener {
         if (isValidBookingDetails(from, destination, when, payment)) {
             // valid details supplied by user
             int clientID = -4;
+            double currentLong = 0, currentLat = 0;
+
             Bundle bundle = getIntent().getExtras();
             if (bundle != null) {
                 clientID = bundle.getInt("clientID");
+                currentLat = bundle.getDouble("latitude");
+                currentLong = bundle.getDouble("longitude");
             }
 
-            Journey journey = new Journey(from, destination, when, payment, clientID);
-            storeJourney(journey);
+            String finalAddress = getFullAddress(currentLat, currentLong);
+            Log.e("FINAL ADDRESS: ", finalAddress);
+
+            if (finalAddress != null) {
+                Journey journey = new Journey(finalAddress, destination, when, payment, clientID);
+                storeJourney(journey);
+            } else {
+                // explode
+
+            }
 
             // store info in journey table
 
 
             // display popup saying booking
         }
+    }
+
+    private String getFullAddress(double latitude, double longitude) {
+        Geocoder geocoder;
+        List<Address> addresses = null;
+        geocoder = new Geocoder(this, Locale.getDefault());
+
+        try {
+            addresses = geocoder.getFromLocation(latitude, longitude, 1);
+            if (addresses != null) {
+                StringBuilder sb = new StringBuilder();
+                int numberOfAddressLines = addresses.get(0).getMaxAddressLineIndex();
+                //Address Line
+                for (int i = 0; i < numberOfAddressLines; i++) {
+                    if (addresses.get(0).getAddressLine(i) != null)
+                        sb.append(addresses.get(0).getAddressLine(i)).append("\n");
+                }
+                if (addresses.get(0).getCountryName() != null) {
+                    sb.append(addresses.get(0).getCountryName()).append("\n");
+                }
+                return sb.toString();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private void storeJourney(Journey journey) {

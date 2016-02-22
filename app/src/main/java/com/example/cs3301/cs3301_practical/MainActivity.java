@@ -40,6 +40,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     PopupMenu popupMenu;
     EditText etName, etAge, etUsername;
     ClientLocalStore clientLocalStore;
+    private Location currentLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -176,7 +177,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 Location myLocation = getLastKnownLocation();
                 if (myLocation != null) {
 
-
                     //locationManager.getLastKnownLocation(provider);
 
                     //set map type
@@ -194,6 +194,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     mMap.addMarker(new MarkerOptions().position(latLng).title("You are here!"));
                     mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
                     zoomToLocation(latLng);
+
+                    currentLocation = myLocation;
+
                 } else {
                     // display error
                     Log.e("SudoUber", "Perms check failed");
@@ -281,6 +284,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onClickBookTaxi(View view){
         Intent intent = new Intent(MainActivity.this, BookingActivity.class);
         intent.putExtra("clientID", clientLocalStore.getLoggedInClient().id);
+        intent.putExtra("longitude", currentLocation.getLongitude());
+        intent.putExtra("latitude", currentLocation.getLatitude());
         startActivity(intent);
     }
+
+    public Location getCurrentLocation() {
+        return currentLocation;
+    }
+
+    public void setCurrentLocation(Location currentLocation) {
+        this.currentLocation = currentLocation;
+    }
+
 }
