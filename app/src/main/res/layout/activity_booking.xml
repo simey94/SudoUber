@@ -64,7 +64,6 @@
         android:text="Request Taxi"
         android:id="@+id/bRequest"
         android:layout_gravity="center_horizontal" />
-
 </LinearLayout>
 
 

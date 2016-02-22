@@ -45,9 +45,7 @@
             android:theme="@style/AppTheme.CustomTheme"></activity>
 
         <activity android:name=".RegisterActivity"></activity>
-        <!--<activity android:name=".Popup"-->
-            <!--android:theme="@style/AppTheme.CustomTheme">-->
-        <!--</activity>-->
+
     </application>
 
 </manifest>

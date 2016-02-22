@@ -40,8 +40,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     PopupMenu popupMenu;
     EditText etName, etAge, etUsername;
     ClientLocalStore clientLocalStore;
-    private static final String TAG = "MainActivity";
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
