@@ -1,6 +1,7 @@
 package com.example.cs3301.cs3301_practical;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.View;
@@ -36,7 +37,6 @@ public class BookingActivity extends Activity implements View.OnClickListener {
 
         // Add on click to request button
         bRequest.setOnClickListener(this);
-
     }
 
     @Override
@@ -45,13 +45,21 @@ public class BookingActivity extends Activity implements View.OnClickListener {
         // get form details
         String from = etFrom.getText().toString();
         String destination = etDestination.getText().toString();
-        String when = etWhen.getText().toString();
+        String strWhen = etWhen.getText().toString();
+        int when = Integer.parseInt(strWhen);
         String payment = etPayment.getText().toString();
 
         // Input form validation
         if (isValidBookingDetails(from, destination, when, payment)) {
             // valid details supplied by user
+            int clientID = -4;
+            Bundle bundle = getIntent().getExtras();
+            if (bundle != null) {
+                clientID = bundle.getInt("clientID");
+            }
 
+            Journey journey = new Journey(from, destination, when, payment, clientID);
+            storeJourney(journey);
 
             // store info in journey table
 
@@ -60,9 +68,21 @@ public class BookingActivity extends Activity implements View.OnClickListener {
         }
     }
 
+    private void storeJourney(Journey journey) {
+        ServerRequest serverRequest = new ServerRequest(this);
+        serverRequest.storeJourneyDataInBackground(journey, new GetJourneyCallBack() {
+            @Override
+            public void done(Journey returnedOrder) {
+                AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(BookingActivity.this);
+                dialogBuilder.setMessage("Order stored");
+                dialogBuilder.setPositiveButton("OK", null);
+                dialogBuilder.show();
+            }
+        });
+    }
 
     /* Form Validation Methods */
-    public boolean isValidBookingDetails(String from, String destination, String when, String payment) {
+    public boolean isValidBookingDetails(String from, String destination, int when, String payment) {
         if (isValidFrom(from) && isValidDestination(destination) && isValidWhen(when) && isValidPayment(payment))
             return true;
         else return false;
@@ -92,11 +112,11 @@ public class BookingActivity extends Activity implements View.OnClickListener {
         }
     }
 
-    public boolean isValidWhen(String when) {
-        if (when.length() == 0) {
+    public boolean isValidWhen(int when) {
+        if (when == 0) {
             etWhen.setError("Please specify a time of pickup!");
             return false;
-        } else if (when.length() > 100) {
+        } else if (when > 100) {
             etWhen.setError("Time in format DD/MM/YYYY HH:MM");
             return false;
         } else {
@@ -115,5 +135,4 @@ public class BookingActivity extends Activity implements View.OnClickListener {
             return true;
         }
     }
-
 }

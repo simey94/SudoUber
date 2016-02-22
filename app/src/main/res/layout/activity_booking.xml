@@ -19,7 +19,9 @@
     <EditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/etFrom" />
+        android:id="@+id/etFrom"
+        android:text="Current Location"
+        android:editable="false" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -56,7 +58,9 @@
     <EditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/etPayment" />
+        android:id="@+id/etPayment"
+        android:text="Cash"
+        android:editable="false" />
 
     <Button
         android:layout_width="wrap_content"

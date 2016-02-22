@@ -4,13 +4,15 @@ package com.example.cs3301.cs3301_practical;
  * Class to represent entry in Journey table in database.
  */
 public class Journey {
-    String pickup, destination, timing, payment;
+    String pickup, destination, payment;
+    int timing, clientID;
 
-    public Journey(String pickup, String destination, String timing, String payment) {
+    public Journey(String pickup, String destination, int timing, String payment, int clientID) {
         this.pickup = pickup;
         this.destination = destination;
         this.timing = timing;
         this.payment = payment;
+        this.clientID = clientID;
     }
 
 }

@@ -49,6 +49,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         etName = (EditText) findViewById(R.id.etName);
         etAge = (EditText) findViewById(R.id.etAge);
         etUsername = (EditText) findViewById(R.id.etUsername);
+
         bAccount = (Button) findViewById(R.id.bAccount);
 
         bAccount.setOnClickListener(this);
@@ -90,6 +91,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 //get client info
                 Client client = clientLocalStore.getLoggedInClient();
                 // loop through menu items
+                popupMenu.getMenu().findItem(R.id.id_id).setTitle("ID: " + client.id);
                 popupMenu.getMenu().findItem(R.id.id_name).setTitle("Name: " + client.name);
                 popupMenu.getMenu().findItem(R.id.id_username).setTitle("Username: " + client.username);
                 popupMenu.getMenu().findItem(R.id.id_age).setTitle("Age: " + client.age);
@@ -277,8 +279,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     // When user clicks book taxi button
     public void onClickBookTaxi(View view){
-        startActivity(new Intent(MainActivity.this, BookingActivity.class));
-
+        Intent intent = new Intent(MainActivity.this, BookingActivity.class);
+        intent.putExtra("clientID", clientLocalStore.getLoggedInClient().id);
+        startActivity(intent);
     }
-
 }

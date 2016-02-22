@@ -16,7 +16,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,6 +41,87 @@ public class ServerRequest {
     public void fetchClientDataInBackground(Client client, GetClientCallBack callBack){
         progressDialog.show();
         new fetchClientDataAsyncTask(client, callBack).execute();
+    }
+
+    /* Stores Order Data on the Server */
+
+    public void storeJourneyDataInBackground(Journey journey, GetJourneyCallBack callback) {
+        progressDialog.show();
+        new StoreOrderDataAsyncTask(journey, callback).execute();
+    }
+
+
+    public class StoreOrderDataAsyncTask extends AsyncTask<Void, Void, Void> {
+        Journey journey;
+        GetJourneyCallBack callback;
+
+        public StoreOrderDataAsyncTask(Journey journey, GetJourneyCallBack callback) {
+            this.journey = journey;
+            this.callback = callback;
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            Map<String, String> dataToSend = new HashMap<>();
+            dataToSend.put("pickup", journey.pickup);
+            dataToSend.put("destination", journey.destination);
+            dataToSend.put("timing", String.valueOf(journey.timing));
+            dataToSend.put("payment", journey.payment);
+            dataToSend.put("clientID", String.valueOf(journey.clientID));
+
+           /* Log.e("ORDER FROM:", order.getFrom());
+            Log.e("ORDER To:", order.getTo());
+            Log.e("ORDER When:", order.getWhen());
+            Log.e("ORDER PaymentType:", order.getPaymentType());
+            Log.e("ORDER client ID", order.getClientID() + "");*/
+
+            String encodedStr = getEncodedData(dataToSend);
+            BufferedReader reader = null;
+
+            try {
+                URL url = new URL(SERVER_ADDRESS + "RegisterJourney.php");
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+                con.setRequestMethod("POST");
+                con.setDoOutput(true);
+
+                OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream());
+
+                writer.write(encodedStr);
+                writer.flush();
+
+                StringBuilder sb = new StringBuilder();
+                reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
+                line = sb.toString();
+
+                Log.i("custom_check", "The values received in the store part are as follows:");
+                Log.i("custom_check", line);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (reader != null) {
+                    try {
+                        reader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void avoid) {
+            super.onPostExecute(avoid);
+            progressDialog.dismiss();
+            callback.done(null);
+        }
     }
 
     public class StoreClientDataAsyncTask extends AsyncTask<Void ,Void, Void >{
@@ -84,6 +164,7 @@ public class ServerRequest {
                 while((line = reader.readLine()) != null) {
                     sb.append(line).append("\n");
                 }
+
                 line = sb.toString();
 
                 Log.i("custom_check", "The values received in the store part are as follows:");
@@ -104,24 +185,6 @@ public class ServerRequest {
             return null;
         }
 
-
-        protected String getEncodedData(Map<String,String> data) {
-            StringBuilder sb = new StringBuilder();
-            for(String key : data.keySet()) {
-                String value = null;
-                try {
-                    value = URLEncoder.encode(data.get(key), "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-
-                if(sb.length()>0)
-                    sb.append("&");
-
-                sb.append(key).append("=").append(value);
-            }
-            return sb.toString();
-        }
 
         @Override
         protected void onPostExecute(Void aVoid) {
@@ -182,7 +245,8 @@ public class ServerRequest {
                     JSONObject jsonObject = new JSONObject(line);
                     String name = jsonObject.getString("name");
                     int age = jsonObject.getInt("age");
-                    returnedClient = new Client(name, client.username, client.password, age);
+                    int id = jsonObject.getInt("id");
+                    returnedClient = new Client(id, name, client.username, client.password, age);
                 }
 
             } catch (Exception e) {
@@ -200,23 +264,6 @@ public class ServerRequest {
             return returnedClient;
         }
 
-        protected String getEncodedData(Map<String,String> data) {
-            StringBuilder sb = new StringBuilder();
-            for(String key : data.keySet()) {
-                String value = null;
-                try {
-                    value = URLEncoder.encode(data.get(key), "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-
-                if(sb.length()>0)
-                    sb.append("&");
-
-                sb.append(key).append("=").append(value);
-            }
-            return sb.toString();
-        }
 
         @Override
         protected void onPostExecute(Client returnedClient) {
@@ -226,5 +273,24 @@ public class ServerRequest {
         }
 
     }
+
+    protected String getEncodedData(Map<String, String> data) {
+        StringBuilder sb = new StringBuilder();
+        for (String key : data.keySet()) {
+            String value = null;
+            try {
+                value = URLEncoder.encode(data.get(key), "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+
+            if (sb.length() > 0)
+                sb.append("&");
+
+            sb.append(key).append("=").append(value);
+        }
+        return sb.toString();
+    }
+
 
 }

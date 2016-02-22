@@ -3,9 +3,7 @@ package com.example.cs3301.cs3301_practical;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-/**
- * Created by michaelsime on 20/02/16.
- */
+
 public class ClientLocalStore {
     public static final String SP_NAME = "clientDetails";
     SharedPreferences clientLocalDatabase;
@@ -18,6 +16,7 @@ public class ClientLocalStore {
     public void storeClientData(Client client){
         // allows edits to shared preferences
         SharedPreferences.Editor spEditor = clientLocalDatabase.edit();
+        spEditor.putInt("id", client.id);
         spEditor.putString("name", client.name);
         spEditor.putString("username", client.username);
         spEditor.putString("password", client.password);
@@ -27,12 +26,13 @@ public class ClientLocalStore {
     }
 
     public Client getLoggedInClient(){
+        int id = clientLocalDatabase.getInt("id", -1);
         String name = clientLocalDatabase.getString("name", "");
         String username = clientLocalDatabase.getString("username", "");
         String password = clientLocalDatabase.getString("password", "");
         int age = clientLocalDatabase.getInt("age", -1);
 
-        Client storedClient = new Client(name, username, password, age);
+        Client storedClient = new Client(id, name, username, password, age);
 
         return storedClient;
     }

@@ -55,7 +55,7 @@
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="605dp"
-        android:layout_height="691dp"
+        android:layout_height="767dp"
         tools:context=".MainActivity" />
 
 </LinearLayout>
