@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/id_pickup"
+        android:title="Pickup: "></item>
+    <item
+        android:id="@+id/id_destination"
+        android:title="Destination: "></item>
+    <item
+        android:id="@+id/id_timing"
+        android:title="Timing: "></item>
+    <item
+        android:id="@+id/id_payment"
+        android:title="Payment: "></item>
+</menu>

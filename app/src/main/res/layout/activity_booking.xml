@@ -30,11 +30,18 @@
         android:text="To (optional)"
         android:id="@+id/textView2" />
 
-    <EditText
-        android:layout_width="match_parent"
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="122dp"
         android:layout_height="wrap_content"
-        android:id="@+id/etDestination"
-        android:layout_gravity="center_horizontal" />
+        android:text="Search"
+        android:id="@+id/bSearch"
+        android:layout_gravity="right" />
+
+    <EditText
+        android:layout_width="377dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/etDestination" />
 
     <TextView
         android:layout_width="wrap_content"

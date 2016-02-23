@@ -51,14 +51,10 @@ public class ClientLocalStore {
     }
 
     public boolean getClientLoggedin(){
-        if(clientLocalDatabase.getBoolean("loggedIn", false) == true){
-            // user is logged in
-            return true;
-        } else {
-            // user is logged out
-            return false;
-        }
-
+        // user is logged out
+        // user is logged in
+        if(clientLocalDatabase.getBoolean("loggedIn", false)) return true;
+        else return false;
     }
 
 }

@@ -46,7 +46,6 @@ public class RegisterActivity extends Activity implements View.OnClickListener {
                     Client registerClientDetails = new Client(name, username, password, Integer.parseInt(age));
                     registerClient(registerClientDetails);
                 }
-
                 break;
         }
     }

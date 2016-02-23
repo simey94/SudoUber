@@ -50,6 +50,11 @@ public class ServerRequest {
         new StoreOrderDataAsyncTask(journey, callback).execute();
     }
 
+    public void fetchJourneyDataInBackground(Journey journey, GetJourneyCallBack journeyCallBack) {
+        progressDialog.show();
+        new fetchJourneyDataAsyncTask(journey, journeyCallBack).execute();
+    }
+
 
     public class StoreOrderDataAsyncTask extends AsyncTask<Void, Void, Void> {
         Journey journey;
@@ -64,7 +69,7 @@ public class ServerRequest {
         protected Void doInBackground(Void... params) {
             Map<String, String> dataToSend = new HashMap<>();
             dataToSend.put("pickup", journey.pickup);
-            dataToSend.put("destination", journey.destination);
+            dataToSend.put("destination", String.valueOf(journey.destination));
             dataToSend.put("timing", String.valueOf(journey.timing));
             dataToSend.put("payment", journey.payment);
             dataToSend.put("clientID", String.valueOf(journey.clientID));
@@ -122,6 +127,89 @@ public class ServerRequest {
             progressDialog.dismiss();
             callback.done(null);
         }
+    }
+
+    public class fetchJourneyDataAsyncTask extends AsyncTask<Void, Void, Journey> {
+        Journey journey;
+        GetJourneyCallBack journeyCallBack;
+
+        public fetchJourneyDataAsyncTask(Journey journey, GetJourneyCallBack journeyCallBack) {
+            this.journey = journey;
+            this.journeyCallBack = journeyCallBack;
+        }
+
+        @Override
+        protected Journey doInBackground(Void... params) {
+
+            Map<String, String> dataToSend = new HashMap<>();
+            dataToSend.put("pickup", journey.pickup);
+            dataToSend.put("destination", "" + journey.destination);
+            dataToSend.put("timing", "" + journey.timing);
+            dataToSend.put("payment", journey.payment);
+            dataToSend.put("clientID", "" + journey.clientID);
+
+            String encodedStr = getEncodedData(dataToSend);
+            BufferedReader reader = null;
+            Journey returnedJourney = null;
+
+            try {
+                URL url = new URL(SERVER_ADDRESS + "FetchJourneyData.php");
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+                con.setRequestMethod("POST");
+                con.setDoOutput(true);
+
+                OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream());
+
+                writer.write(encodedStr);
+                writer.flush();
+
+                StringBuilder sb = new StringBuilder();
+                reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
+                line = sb.toString();
+                Log.i("custom_check", "The values received in the store part are as follows:");
+                Log.i("custom_check", line);
+                Log.i("LENGTH", line.length() + "");
+
+                if (line.length() > 10) {
+                    JSONObject jsonObject = new JSONObject(line);
+                    String pickup = jsonObject.getString("pickup");
+                    String destination = jsonObject.getString("destination");
+                    int timing = jsonObject.getInt("timing");
+                    String payment = jsonObject.getString("payment");
+                    int clientID = jsonObject.getInt("clientID");
+                    // TODO: ClientID
+                    returnedJourney = new Journey(pickup, destination, timing, payment, clientID);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (reader != null) {
+                    try {
+                        reader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            return returnedJourney;
+        }
+
+
+        @Override
+        protected void onPostExecute(Journey returnedJourney) {
+            progressDialog.dismiss();
+            journeyCallBack.done(returnedJourney);
+            super.onPostExecute(returnedJourney);
+        }
+
     }
 
     public class StoreClientDataAsyncTask extends AsyncTask<Void ,Void, Void >{
@@ -291,6 +379,4 @@ public class ServerRequest {
         }
         return sb.toString();
     }
-
-
 }

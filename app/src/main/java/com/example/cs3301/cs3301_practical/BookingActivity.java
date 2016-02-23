@@ -11,6 +11,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
@@ -20,6 +26,7 @@ public class BookingActivity extends Activity implements View.OnClickListener {
 
     EditText etFrom, etDestination, etWhen, etPayment;
     Button bRequest;
+    GoogleMap mMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,43 +54,73 @@ public class BookingActivity extends Activity implements View.OnClickListener {
     }
 
     @Override
-    public void onClick(View v) {
+    public void onClick(View view) {
 
-        // get form details
-        String from = etFrom.getText().toString();
-        String destination = etDestination.getText().toString();
-        String strWhen = etWhen.getText().toString();
-        int when = Integer.parseInt(strWhen);
-        String payment = etPayment.getText().toString();
+        switch (view.getId()) {
+            case R.id.bSearch:
+                EditText location_tf = (EditText) findViewById(R.id.TFaddress);
+                String location = location_tf.getText().toString();
 
-        // Input form validation
-        if (isValidBookingDetails(from, destination, when, payment)) {
-            // valid details supplied by user
-            int clientID = -4;
-            double currentLong = 0, currentLat = 0;
+                List<Address> addressList = null;
 
-            Bundle bundle = getIntent().getExtras();
-            if (bundle != null) {
-                clientID = bundle.getInt("clientID");
-                currentLat = bundle.getDouble("latitude");
-                currentLong = bundle.getDouble("longitude");
-            }
+                if (location != null || !(location != "")) {
 
-            String finalAddress = getFullAddress(currentLat, currentLong);
-            Log.e("FINAL ADDRESS: ", finalAddress);
+                    Geocoder geocoder = new Geocoder(this);
+                    try {
+                        addressList = geocoder.getFromLocationName(location, 1);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
 
-            if (finalAddress != null) {
-                Journey journey = new Journey(finalAddress, destination, when, payment, clientID);
-                storeJourney(journey);
-            } else {
-                // explode
+                    // Fetch address
+                    Address address = addressList.get(0);
+                    LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
 
-            }
+                    mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
+                    zoomToLocation(latLng);
+                }
 
-            // store info in journey table
+                break;
+            case R.id.bRequest:
+                // get form details
+                String from = etFrom.getText().toString();
+                String destination = etDestination.getText().toString();
+                //int  destination = Integer.parseInt(strDestination);
+                String strWhen = etWhen.getText().toString();
+                int when = Integer.parseInt(strWhen);
+                String payment = etPayment.getText().toString();
+                int clientID = -4;
+
+                // Input form validation
+                if (isValidBookingDetails(from, destination, when, payment)) {
+                    // valid details supplied by user
+
+                    double currentLong = 0, currentLat = 0;
+
+                    Bundle bundle = getIntent().getExtras();
+                    if (bundle != null) {
+                        clientID = bundle.getInt("clientID");
+                        currentLat = bundle.getDouble("latitude");
+                        currentLong = bundle.getDouble("longitude");
+                    }
+
+                    String finalAddress = getFullAddress(currentLat, currentLong);
+                    Log.e("FINAL ADDRESS: ", finalAddress);
+
+                    if (finalAddress != null) {
+                        Journey journey = new Journey(finalAddress, destination, when, payment, clientID);
+                        storeJourney(journey);
+                    } else {
+                        // explode
+
+                    }
+
+                    // store info in journey table
 
 
-            // display popup saying booking
+                    // display popup saying booking
+                }
+                break;
         }
     }
 
@@ -111,6 +148,17 @@ public class BookingActivity extends Activity implements View.OnClickListener {
             e.printStackTrace();
         }
         return null;
+    }
+
+    // Zooms in Maps to location specified in param
+    private void zoomToLocation(LatLng latLng) {
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(latLng)
+                .zoom(17)
+                .bearing(0)
+                .tilt(40)
+                .build();
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
     }
 
     private void storeJourney(Journey journey) {
@@ -147,10 +195,10 @@ public class BookingActivity extends Activity implements View.OnClickListener {
 
     public boolean isValidDestination(String destinationLocation) {
         if (destinationLocation.length() == 0) {
-            etDestination.setError("Please specify a destination");
+            etFrom.setError("Please specify a destination location");
             return false;
         } else if (destinationLocation.length() > 100) {
-            etDestination.setError("Destination can only be up to 100 characters");
+            etFrom.setError("Location can only be up to 100 characters");
             return false;
         } else {
             return true;

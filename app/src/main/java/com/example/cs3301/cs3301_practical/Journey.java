@@ -15,4 +15,7 @@ public class Journey {
         this.clientID = clientID;
     }
 
+    public Journey(int clientID) {
+        this.clientID = clientID;
+    }
 }

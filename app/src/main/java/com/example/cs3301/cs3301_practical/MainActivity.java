@@ -36,10 +36,11 @@ import java.util.List;
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
 
     private GoogleMap mMap;
-    Button bAccount;
-    PopupMenu popupMenu;
+    Button bAccount, bMapType, bTaxi, bHistory;
+    PopupMenu popupMenu, histPopupMenu;
     EditText etName, etAge, etUsername;
     ClientLocalStore clientLocalStore;
+    JourneyLocalStore journeyLocalStore;
     private Location currentLocation;
 
     @Override
@@ -52,10 +53,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         etUsername = (EditText) findViewById(R.id.etUsername);
 
         bAccount = (Button) findViewById(R.id.bAccount);
+        bMapType = (Button) findViewById(R.id.bMapType);
+        bTaxi = (Button) findViewById(R.id.bTaxi);
+        bHistory = (Button) findViewById(R.id.bHistory);
 
         bAccount.setOnClickListener(this);
+        bMapType.setOnClickListener(this);
+        bTaxi.setOnClickListener(this);
+        bHistory.setOnClickListener(this);
 
         clientLocalStore = new ClientLocalStore(this);
+        journeyLocalStore = new JourneyLocalStore(this, clientLocalStore.getLoggedInClient().id);
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -112,8 +120,89 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                 });
                 popupMenu.show();
-
                 break;
+
+            case R.id.bTaxi:
+                bookTaxi();
+                break;
+
+            case R.id.bMapType:
+                changeMapType();
+                break;
+
+            case R.id.bSearch:
+                search();
+                break;
+
+            case R.id.bHistory:
+                // Create drop down to show options
+                histPopupMenu = new PopupMenu(this, bHistory);
+                MenuInflater mI = histPopupMenu.getMenuInflater();
+                mI.inflate(R.menu.popup_history, histPopupMenu.getMenu());
+
+                Log.e("HERE", "Created History Popup");
+                //get client info
+
+                int clientID = clientLocalStore.getLoggedInClient().id;
+                Journey journey = new Journey("lol", "0", 0, "n", clientID);
+
+                // Fetch Journey details from Server
+                ServerRequest serverRequests = new ServerRequest(this);
+                serverRequests.fetchJourneyDataInBackground(journey, new GetJourneyCallBack() {
+                    @Override
+                    public void done(Journey returnedJourney) {
+                        histPopupMenu.getMenu().findItem(R.id.id_pickup).setTitle("Pickup: " + returnedJourney.pickup);
+                        histPopupMenu.getMenu().findItem(R.id.id_destination).setTitle("Destination: " + returnedJourney.destination);
+                        histPopupMenu.getMenu().findItem(R.id.id_timing).setTitle("When: " + returnedJourney.timing);
+                        histPopupMenu.getMenu().findItem(R.id.id_payment).setTitle("Payment: " + returnedJourney.payment);
+                    }
+                });
+
+                histPopupMenu.show();
+                break;
+        }
+    }
+
+    private void bookTaxi() {
+        Intent intent = new Intent(MainActivity.this, BookingActivity.class);
+        intent.putExtra("clientID", clientLocalStore.getLoggedInClient().id);
+        intent.putExtra("longitude", currentLocation.getLongitude());
+        intent.putExtra("latitude", currentLocation.getLatitude());
+        startActivity(intent);
+    }
+
+
+    public void search() {
+        EditText location_tf = (EditText) findViewById(R.id.TFaddress);
+        String location = location_tf.getText().toString();
+
+        List<Address> addressList = null;
+
+        if (location != null || !(location != "")) {
+
+            Geocoder geocoder = new Geocoder(this);
+            try {
+                addressList = geocoder.getFromLocationName(location, 1);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // Fetch address
+            Address address = addressList.get(0);
+            LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
+
+            mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
+            zoomToLocation(latLng);
+        }
+    }
+
+    public void changeMapType() {
+        if (mMap.getMapType() == GoogleMap.MAP_TYPE_NORMAL) {
+            mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+        }
+        // Map is satellite
+        else {
+            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
         }
     }
 
@@ -233,31 +322,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return bestLocation;
     }
 
-
-    public void onSearch(View view){
-        EditText location_tf = (EditText)findViewById(R.id.TFaddress);
-        String location = location_tf.getText().toString();
-
-        List<Address> addressList = null;
-
-        if (location != null || !(location != "")) {
-
-            Geocoder geocoder = new Geocoder(this);
-            try {
-                addressList =  geocoder.getFromLocationName(location, 1);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            // Fetch address
-            Address address = addressList.get(0);
-            LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
-
-            mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
-            zoomToLocation(latLng);
-        }
-    }
-
     // Zooms in Maps to location specified in param
     private void zoomToLocation(LatLng latLng) {
         CameraPosition cameraPosition = new CameraPosition.Builder()
@@ -269,26 +333,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
     }
 
-    public void changeType(View view){
-
-        if(mMap.getMapType() == GoogleMap.MAP_TYPE_NORMAL){
-            mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
-        }
-        // Map is satellite
-        else{
-            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-        }
-    }
-
-    // When user clicks book taxi button
-    public void onClickBookTaxi(View view){
-        Intent intent = new Intent(MainActivity.this, BookingActivity.class);
-        intent.putExtra("clientID", clientLocalStore.getLoggedInClient().id);
-        intent.putExtra("longitude", currentLocation.getLongitude());
-        intent.putExtra("latitude", currentLocation.getLatitude());
-        startActivity(intent);
-    }
-
     public Location getCurrentLocation() {
         return currentLocation;
     }
@@ -296,5 +340,4 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void setCurrentLocation(Location currentLocation) {
         this.currentLocation = currentLocation;
     }
-
 }
