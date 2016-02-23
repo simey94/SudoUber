@@ -2,6 +2,7 @@ package com.example.cs3301.cs3301_practical;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.app.FragmentManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -35,11 +36,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
+public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener, TimeDialogActivity.Communicator {
 
     private GoogleMap mMap;
     // UI elements
-    Button bAccount, bMapType, bTaxi, bHistory, bRequest, bSearch;
+    Button bAccount, bMapType, bTaxi, bHistory, bRequest, bSearch, bTime;
     PopupMenu popupMenu, histPopupMenu;
     EditText etName, etAge, etUsername, etFrom, etDestination, etWhen, etPayment;
 
@@ -70,6 +71,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         bHistory = (Button) findViewById(R.id.bHistory);
         bRequest = (Button) findViewById(R.id.bRequest);
         bSearch = (Button) findViewById(R.id.bSearch);
+        bTime = (Button) findViewById(R.id.bTime);
 
         // Click listeners
         bAccount.setOnClickListener(this);
@@ -78,6 +80,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         bHistory.setOnClickListener(this);
         bRequest.setOnClickListener(this);
         bSearch.setOnClickListener(this);
+        bTime.setOnClickListener(this);
 
         clientLocalStore = new ClientLocalStore(this);
         journeyLocalStore = new JourneyLocalStore(this, clientLocalStore.getLoggedInClient().id);
@@ -199,7 +202,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 histPopupMenu.show();
                 break;
+
+            case R.id.bTime:
+                showTimeDialog();
+                break;
         }
+    }
+
+    public void showTimeDialog() {
+        FragmentManager fragmentManager = getFragmentManager();
+        TimeDialogActivity timeDialogActivity = new TimeDialogActivity();
+        timeDialogActivity.show(fragmentManager, "time");
     }
 
     public void search() {
@@ -400,8 +413,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
     }
 
-
-    /* Form Validation Methods */
+    /* Booking Form Validation Methods */
     public boolean isValidBookingDetails(String from, String destination, int when, String payment) {
         if (isValidFrom(from) && isValidDestination(destination) && isValidWhen(when) && isValidPayment(payment))
             return true;
@@ -454,5 +466,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         } else {
             return true;
         }
+    }
+
+    @Override
+    public void onDialogMessage(String message) {
+        etWhen.setText(message);
     }
 }
