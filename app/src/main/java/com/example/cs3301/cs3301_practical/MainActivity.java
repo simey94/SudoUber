@@ -1,6 +1,7 @@
 package com.example.cs3301.cs3301_practical;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -32,35 +33,51 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
 
     private GoogleMap mMap;
-    Button bAccount, bMapType, bTaxi, bHistory;
+    // UI elements
+    Button bAccount, bMapType, bTaxi, bHistory, bRequest, bSearch;
     PopupMenu popupMenu, histPopupMenu;
-    EditText etName, etAge, etUsername;
+    EditText etName, etAge, etUsername, etFrom, etDestination, etWhen, etPayment;
+
+    Location currentLocation;
+
+    // Local database objects
     ClientLocalStore clientLocalStore;
     JourneyLocalStore journeyLocalStore;
-    private Location currentLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Text fields
         etName = (EditText) findViewById(R.id.etName);
         etAge = (EditText) findViewById(R.id.etAge);
         etUsername = (EditText) findViewById(R.id.etUsername);
+        etFrom = (EditText) findViewById(R.id.etFrom);
+        etDestination = (EditText) findViewById(R.id.etDestination);
+        etWhen = (EditText) findViewById(R.id.etWhen);
+        etPayment = (EditText) findViewById(R.id.etPayment);
 
+        // Buttons
         bAccount = (Button) findViewById(R.id.bAccount);
         bMapType = (Button) findViewById(R.id.bMapType);
-        bTaxi = (Button) findViewById(R.id.bTaxi);
+        bTaxi = (Button) findViewById(R.id.bRequest);
         bHistory = (Button) findViewById(R.id.bHistory);
+        bRequest = (Button) findViewById(R.id.bRequest);
+        bSearch = (Button) findViewById(R.id.bSearch);
 
+        // Click listeners
         bAccount.setOnClickListener(this);
         bMapType.setOnClickListener(this);
         bTaxi.setOnClickListener(this);
         bHistory.setOnClickListener(this);
+        bRequest.setOnClickListener(this);
+        bSearch.setOnClickListener(this);
 
         clientLocalStore = new ClientLocalStore(this);
         journeyLocalStore = new JourneyLocalStore(this, clientLocalStore.getLoggedInClient().id);
@@ -122,8 +139,30 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 popupMenu.show();
                 break;
 
-            case R.id.bTaxi:
-                bookTaxi();
+            case R.id.bRequest:
+                String from = etFrom.getText().toString();
+                String destination = etDestination.getText().toString();
+                String strWhen = etWhen.getText().toString();
+                int when = Integer.parseInt(strWhen);
+                String payment = etPayment.getText().toString();
+                int clientID = -4;
+
+                // Input form validation
+                if (isValidBookingDetails(from, destination, when, payment)) {
+
+                    double currentLong = currentLocation.getLongitude(), currentLat = currentLocation.getLatitude();
+
+                    String finalAddress = getFullAddress(currentLat, currentLong);
+                    Log.e("FINAL ADDRESS: ", finalAddress);
+
+                    if (finalAddress != null) {
+                        Journey journey = new Journey(finalAddress, destination, when, payment, clientID);
+                        storeJourney(journey);
+                    } else {
+                        // explode
+
+                    }
+                }
                 break;
 
             case R.id.bMapType:
@@ -143,7 +182,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.e("HERE", "Created History Popup");
                 //get client info
 
-                int clientID = clientLocalStore.getLoggedInClient().id;
+                clientID = clientLocalStore.getLoggedInClient().id;
                 Journey journey = new Journey("lol", "0", 0, "n", clientID);
 
                 // Fetch Journey details from Server
@@ -163,18 +202,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void bookTaxi() {
-        Intent intent = new Intent(MainActivity.this, BookingActivity.class);
-        intent.putExtra("clientID", clientLocalStore.getLoggedInClient().id);
-        intent.putExtra("longitude", currentLocation.getLongitude());
-        intent.putExtra("latitude", currentLocation.getLatitude());
-        startActivity(intent);
-    }
-
-
     public void search() {
-        EditText location_tf = (EditText) findViewById(R.id.TFaddress);
-        String location = location_tf.getText().toString();
+        String location = etDestination.getText().toString();
 
         List<Address> addressList = null;
 
@@ -206,6 +235,44 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    private void storeJourney(Journey journey) {
+        ServerRequest serverRequest = new ServerRequest(this);
+        serverRequest.storeJourneyDataInBackground(journey, new GetJourneyCallBack() {
+            @Override
+            public void done(Journey returnedOrder) {
+                AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
+                dialogBuilder.setMessage("Order stored");
+                dialogBuilder.setPositiveButton("OK", null);
+                dialogBuilder.show();
+            }
+        });
+    }
+
+    private String getFullAddress(double latitude, double longitude) {
+        Geocoder geocoder;
+        List<Address> addresses = null;
+        geocoder = new Geocoder(this, Locale.getDefault());
+
+        try {
+            addresses = geocoder.getFromLocation(latitude, longitude, 1);
+            if (addresses != null) {
+                StringBuilder sb = new StringBuilder();
+                int numberOfAddressLines = addresses.get(0).getMaxAddressLineIndex();
+                //Address Line
+                for (int i = 0; i < numberOfAddressLines; i++) {
+                    if (addresses.get(0).getAddressLine(i) != null)
+                        sb.append(addresses.get(0).getAddressLine(i)).append("\n");
+                }
+                if (addresses.get(0).getCountryName() != null) {
+                    sb.append(addresses.get(0).getCountryName()).append("\n");
+                }
+                return sb.toString();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
     /**
      * Manipulates the map once available.
@@ -333,11 +400,59 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
     }
 
-    public Location getCurrentLocation() {
-        return currentLocation;
+
+    /* Form Validation Methods */
+    public boolean isValidBookingDetails(String from, String destination, int when, String payment) {
+        if (isValidFrom(from) && isValidDestination(destination) && isValidWhen(when) && isValidPayment(payment))
+            return true;
+        else return false;
     }
 
-    public void setCurrentLocation(Location currentLocation) {
-        this.currentLocation = currentLocation;
+    public boolean isValidFrom(String fromLocation) {
+        if (fromLocation.length() == 0) {
+            etFrom.setError("Please specify a pickup location");
+            return false;
+        } else if (fromLocation.length() > 100) {
+            etFrom.setError("Location can only be up to 100 characters");
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    public boolean isValidDestination(String destinationLocation) {
+        if (destinationLocation.length() == 0) {
+            etFrom.setError("Please specify a destination location");
+            return false;
+        } else if (destinationLocation.length() > 100) {
+            etFrom.setError("Location can only be up to 100 characters");
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    public boolean isValidWhen(int when) {
+        if (when == 0) {
+            etWhen.setError("Please specify a time of pickup!");
+            return false;
+        } else if (when > 100) {
+            etWhen.setError("Time in format DD/MM/YYYY HH:MM");
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    public boolean isValidPayment(String payment) {
+        if (payment.length() == 0) {
+            etPayment.setError("Please specify a payment method!");
+            return false;
+        } else if (payment.length() > 100) {
+            etPayment.setError("Location can only be cash or card!");
+            return false;
+        } else {
+            return true;
+        }
     }
 }
