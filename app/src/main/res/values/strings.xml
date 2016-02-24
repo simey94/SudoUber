@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">CS3301_Practical</string>
     <string name="title_activity_main">Map</string>
+    <string-array name="payment_array">
+        <item>Cash</item>
+        <item>Card</item>
+    </string-array>
 </resources>

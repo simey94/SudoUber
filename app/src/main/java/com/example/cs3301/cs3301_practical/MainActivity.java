@@ -18,9 +18,12 @@ import android.util.Log;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.PopupMenu;
+import android.widget.Spinner;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -33,18 +36,23 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
-public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener, TimeDialogActivity.Communicator {
+public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener, TimeDialogActivity.Communicator, AdapterView.OnItemSelectedListener {
 
     private GoogleMap mMap;
     // UI elements
-    Button bAccount, bMapType, bTaxi, bHistory, bRequest, bSearch, bTime;
+    Button bAccount, bMapType, bTaxi, bHistory, bRequest, bSearch, bTime, bCurrentLoc;
     PopupMenu popupMenu, histPopupMenu;
-    EditText etName, etAge, etUsername, etFrom, etDestination, etWhen, etPayment;
+    EditText etName, etAge, etUsername, etFrom, etDestination, etWhen;
+    Spinner spinner;
+    int clientID;
 
     Location currentLocation;
+    Calendar whenDate;
 
     // Local database objects
     ClientLocalStore clientLocalStore;
@@ -62,7 +70,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         etFrom = (EditText) findViewById(R.id.etFrom);
         etDestination = (EditText) findViewById(R.id.etDestination);
         etWhen = (EditText) findViewById(R.id.etWhen);
-        etPayment = (EditText) findViewById(R.id.etPayment);
 
         // Buttons
         bAccount = (Button) findViewById(R.id.bAccount);
@@ -72,6 +79,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         bRequest = (Button) findViewById(R.id.bRequest);
         bSearch = (Button) findViewById(R.id.bSearch);
         bTime = (Button) findViewById(R.id.bTime);
+        bCurrentLoc = (Button) findViewById(R.id.bCurrentLoc);
 
         // Click listeners
         bAccount.setOnClickListener(this);
@@ -81,15 +89,51 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         bRequest.setOnClickListener(this);
         bSearch.setOnClickListener(this);
         bTime.setOnClickListener(this);
+        bCurrentLoc.setOnClickListener(this);
 
         clientLocalStore = new ClientLocalStore(this);
         journeyLocalStore = new JourneyLocalStore(this, clientLocalStore.getLoggedInClient().id);
+
+        // Payment choices spinner
+        spinner = (Spinner) findViewById(R.id.payment_spinner);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.payment_array, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        spinner.setOnItemSelectedListener(this);
+
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        ServerRequest serverRequests = new ServerRequest(this);
+        Driver driver = new Driver("test1", "5", "56.335054", "-2.806343");
+        serverRequests.fetchDriverDataInBackground(driver, new GetDriverCallBack() {
+            @Override
+            public void done(Driver returnedDriver) {
+                MarkerOptions markerOptions = new MarkerOptions();
+
+                // get lat long of driver
+                Double latitude = Double.parseDouble(returnedDriver.lat);
+                Double longitude = Double.parseDouble(returnedDriver.posLong);
+                LatLng position = new LatLng(latitude, longitude);
+
+                markerOptions.position(position).title("Driver name: " + returnedDriver.name).snippet("Driver rating: " + returnedDriver.rating);
+
+                // Standard marker icon in case image is not found
+                BitmapDescriptor icon = BitmapDescriptorFactory
+                        .defaultMarker(BitmapDescriptorFactory.HUE_YELLOW);
+
+                BitmapDescriptor loaded_icon = BitmapDescriptorFactory
+                        .fromResource(R.drawable.car_marker);
+                markerOptions.icon(loaded_icon);
+
+                mMap.addMarker(markerOptions);
+                zoomToLocation(position);
+            }
+        });
     }
 
     @Override
@@ -116,7 +160,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 popupMenu = new PopupMenu(this, bAccount);
                 MenuInflater menuInflater = popupMenu.getMenuInflater();
                 menuInflater.inflate(R.menu.popup_actions, popupMenu.getMenu());
-                Log.e("HERE", "Created popum");
+                Log.e("HERE", "Created popup");
                 //get client info
                 Client client = clientLocalStore.getLoggedInClient();
                 // loop through menu items
@@ -146,12 +190,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 String from = etFrom.getText().toString();
                 String destination = etDestination.getText().toString();
                 String strWhen = etWhen.getText().toString();
-                int when = Integer.parseInt(strWhen);
-                String payment = etPayment.getText().toString();
-                int clientID = -4;
+                String payment = spinner.getSelectedItem().toString();
+                int clientID = clientLocalStore.getLoggedInClient().id;
+
+                // Maria DB format for insertion into db
+                String dateFormat = "yyyy-MM-dd hh:mm:ss";
+                SimpleDateFormat format = new SimpleDateFormat(dateFormat, Locale.UK);
+                Log.e("WHEN DATE: ", "" + whenDate.getTime());
+                String pickupTime = format.format(whenDate.getTime());
+                Log.e("APRES Format", "" + pickupTime);
 
                 // Input form validation
-                if (isValidBookingDetails(from, destination, when, payment)) {
+                if (isValidBookingDetails(from, destination, strWhen, payment)) {
 
                     double currentLong = currentLocation.getLongitude(), currentLat = currentLocation.getLatitude();
 
@@ -159,7 +209,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     Log.e("FINAL ADDRESS: ", finalAddress);
 
                     if (finalAddress != null) {
-                        Journey journey = new Journey(finalAddress, destination, when, payment, clientID);
+                        Journey journey = new Journey(finalAddress, destination, pickupTime, payment, clientID);
                         storeJourney(journey);
                     } else {
                         // explode
@@ -186,7 +236,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 //get client info
 
                 clientID = clientLocalStore.getLoggedInClient().id;
-                Journey journey = new Journey("lol", "0", 0, "n", clientID);
+                Journey journey = new Journey("lol", "0", "YYYY", "n", clientID);
 
                 // Fetch Journey details from Server
                 ServerRequest serverRequests = new ServerRequest(this);
@@ -205,6 +255,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             case R.id.bTime:
                 showTimeDialog();
+                break;
+
+            case R.id.bCurrentLoc:
+                String pickupAdr = getFullAddress(currentLocation.getLatitude(), currentLocation.getLongitude());
+                etFrom.setText(pickupAdr);
                 break;
         }
     }
@@ -235,6 +290,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
             zoomToLocation(latLng);
+            etDestination.setText(getFullAddress(latLng.latitude, latLng.longitude));
         }
     }
 
@@ -414,7 +470,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     /* Booking Form Validation Methods */
-    public boolean isValidBookingDetails(String from, String destination, int when, String payment) {
+    public boolean isValidBookingDetails(String from, String destination, String when, String payment) {
         if (isValidFrom(from) && isValidDestination(destination) && isValidWhen(when) && isValidPayment(payment))
             return true;
         else return false;
@@ -444,11 +500,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    public boolean isValidWhen(int when) {
-        if (when == 0) {
+    public boolean isValidWhen(String when) {
+        if (when.length() == 0) {
             etWhen.setError("Please specify a time of pickup!");
             return false;
-        } else if (when > 100) {
+        } else if (when.length() > 100) {
             etWhen.setError("Time in format DD/MM/YYYY HH:MM");
             return false;
         } else {
@@ -458,10 +514,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     public boolean isValidPayment(String payment) {
         if (payment.length() == 0) {
-            etPayment.setError("Please specify a payment method!");
+            //tPayment.setError("Please specify a payment method!");
             return false;
         } else if (payment.length() > 100) {
-            etPayment.setError("Location can only be cash or card!");
+            //etPayment.setError("Location can only be cash or card!");
             return false;
         } else {
             return true;
@@ -469,7 +525,25 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     @Override
-    public void onDialogMessage(String message) {
+    public void onDialogMessage(String message, Calendar dateTime) {
+        whenDate = dateTime;
         etWhen.setText(message);
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        // get item selected
+        if (parent.getItemAtPosition(position).equals("Card")) {
+            AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
+            dialogBuilder.setMessage("Card Payments are not available at this time! Please use cash");
+            dialogBuilder.setPositiveButton("OK", null);
+            dialogBuilder.show();
+            parent.setSelection(0);
+        }
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
     }
 }

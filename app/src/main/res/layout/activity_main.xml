@@ -4,6 +4,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical">
 
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Current Location"
+        android:id="@+id/bCurrentLoc"
+        android:layout_gravity="right" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -67,12 +74,10 @@
         android:text="Payment Method"
         android:id="@+id/textView4" />
 
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/etPayment"
-        android:text="Cash"
-        android:editable="false" />
+    <Spinner
+        android:id="@+id/payment_spinner"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content" />
 
     <Button
         android:layout_width="wrap_content"

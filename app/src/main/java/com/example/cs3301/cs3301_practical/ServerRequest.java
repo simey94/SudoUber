@@ -33,6 +33,8 @@ public class ServerRequest {
         progressDialog.setMessage("Please wait...");
     }
 
+    /* Fetch and Store Client data */
+
     public void storeClientDataInBackground(Client client, GetClientCallBack clientCallBack){
         progressDialog.show();
         new StoreClientDataAsyncTask(client,clientCallBack).execute();
@@ -55,6 +57,17 @@ public class ServerRequest {
         new fetchJourneyDataAsyncTask(journey, journeyCallBack).execute();
     }
 
+    /* Store and Fetch Driver Details */
+    public void storeDriverDataInBackground(Driver driver, GetDriverCallBack driverCallBack) {
+        progressDialog.show();
+        //new storeDriverDataInBackground(driver,driverCallBack).execute();
+    }
+
+    public void fetchDriverDataInBackground(Driver driver, GetDriverCallBack driverCallBack) {
+        progressDialog.show();
+        new fetchDriverDataAsyncTask(driver, driverCallBack).execute();
+    }
+
 
     public class StoreOrderDataAsyncTask extends AsyncTask<Void, Void, Void> {
         Journey journey;
@@ -69,16 +82,10 @@ public class ServerRequest {
         protected Void doInBackground(Void... params) {
             Map<String, String> dataToSend = new HashMap<>();
             dataToSend.put("pickup", journey.pickup);
-            dataToSend.put("destination", String.valueOf(journey.destination));
-            dataToSend.put("timing", String.valueOf(journey.timing));
+            dataToSend.put("destination", journey.destination);
+            dataToSend.put("timing", journey.timing);
             dataToSend.put("payment", journey.payment);
             dataToSend.put("clientID", String.valueOf(journey.clientID));
-
-           /* Log.e("ORDER FROM:", order.getFrom());
-            Log.e("ORDER To:", order.getTo());
-            Log.e("ORDER When:", order.getWhen());
-            Log.e("ORDER PaymentType:", order.getPaymentType());
-            Log.e("ORDER client ID", order.getClientID() + "");*/
 
             String encodedStr = getEncodedData(dataToSend);
             BufferedReader reader = null;
@@ -180,7 +187,7 @@ public class ServerRequest {
                     JSONObject jsonObject = new JSONObject(line);
                     String pickup = jsonObject.getString("pickup");
                     String destination = jsonObject.getString("destination");
-                    int timing = jsonObject.getInt("timing");
+                    String timing = jsonObject.getString("timing");
                     String payment = jsonObject.getString("payment");
                     int clientID = jsonObject.getInt("clientID");
                     // TODO: ClientID
@@ -352,7 +359,6 @@ public class ServerRequest {
             return returnedClient;
         }
 
-
         @Override
         protected void onPostExecute(Client returnedClient) {
             progressDialog.dismiss();
@@ -360,6 +366,87 @@ public class ServerRequest {
             super.onPostExecute(returnedClient);
         }
 
+    }
+
+    public class fetchDriverDataAsyncTask extends AsyncTask<Void, Void, Driver> {
+        Driver driver;
+        GetDriverCallBack driverCallBack;
+
+        public fetchDriverDataAsyncTask(Driver driver, GetDriverCallBack driverCallBack) {
+            this.driver = driver;
+            this.driverCallBack = driverCallBack;
+        }
+
+        @Override
+        protected Driver doInBackground(Void... params) {
+            // id, name, rating, lat, long
+            Map<String, String> dataToSend = new HashMap<>();
+            //dataToSend.put("id", driver.id);
+            dataToSend.put("name", "" + driver.name);
+            dataToSend.put("rating", "" + driver.rating);
+            dataToSend.put("lat", driver.lat);
+            dataToSend.put("posLong", "" + driver.posLong);
+
+            String encodedStr = getEncodedData(dataToSend);
+            BufferedReader reader = null;
+            Driver returnedDriver = null;
+
+            try {
+                URL url = new URL(SERVER_ADDRESS + "FetchDriverData.php");
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+                con.setRequestMethod("POST");
+                con.setDoOutput(true);
+
+                OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream());
+
+                writer.write(encodedStr);
+                writer.flush();
+
+                StringBuilder sb = new StringBuilder();
+                reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
+                line = sb.toString();
+                Log.i("custom_check", "The values received in the store part are as follows:");
+                Log.i("custom_check", line);
+                Log.i("LENGTH", line.length() + "");
+
+                if (line.length() > 10) {
+                    JSONObject jsonObject = new JSONObject(line);
+                    String name = jsonObject.getString("name");
+                    String rating = jsonObject.getString("rating");
+                    String lat = jsonObject.getString("lat");
+                    String posLong = jsonObject.getString("posLong");
+
+                    // TODO: ID maybe
+                    returnedDriver = new Driver(name, rating, lat, posLong);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (reader != null) {
+                    try {
+                        reader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            return returnedDriver;
+        }
+
+        @Override
+        protected void onPostExecute(Driver returnedDriver) {
+            progressDialog.dismiss();
+            driverCallBack.done(returnedDriver);
+            super.onPostExecute(returnedDriver);
+        }
     }
 
     protected String getEncodedData(Map<String, String> data) {

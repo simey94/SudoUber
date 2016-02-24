@@ -22,7 +22,7 @@ public class JourneyLocalStore {
         SharedPreferences.Editor spEditor = JourneyLocalDatabase.edit();
         spEditor.putString("pickup", journey.pickup);
         spEditor.putString("destination", journey.destination);
-        spEditor.putInt("timing", journey.timing);
+        spEditor.putString("timing", journey.timing);
         spEditor.putString("payment", journey.payment);
         spEditor.putInt("clientID", clientID);
         // commit changes
@@ -32,7 +32,7 @@ public class JourneyLocalStore {
     public Journey getClientJourney(int clientID) {
         String pickup = JourneyLocalDatabase.getString("pickup", "");
         String destination = JourneyLocalDatabase.getString("destination", "");
-        int timing = JourneyLocalDatabase.getInt("timing", -4);
+        String timing = JourneyLocalDatabase.getString("timing", "");
         String payment = JourneyLocalDatabase.getString("payment", "");
 
         Journey storedJourney = new Journey(pickup, destination, timing, payment, clientID);
