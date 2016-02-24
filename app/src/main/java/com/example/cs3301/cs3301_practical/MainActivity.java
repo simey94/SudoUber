@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
+import android.text.InputType;
 import android.util.Log;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -24,6 +25,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.PopupMenu;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -45,9 +47,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
     // UI elements
-    Button bAccount, bMapType, bTaxi, bHistory, bRequest, bSearch, bTime, bCurrentLoc;
+    Button bAccount, bMapType, bTaxi, bHistory, bRequest, bSearch, bTime, bCurrentLoc, bSearchPickup;
     PopupMenu popupMenu, histPopupMenu;
-    EditText etName, etAge, etUsername, etFrom, etDestination, etWhen;
+    EditText etName, etAge, etUsername, etFrom, etDestination;
+    TextView tvWhen;
     Spinner spinner;
     int clientID;
 
@@ -68,8 +71,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         etAge = (EditText) findViewById(R.id.etAge);
         etUsername = (EditText) findViewById(R.id.etUsername);
         etFrom = (EditText) findViewById(R.id.etFrom);
+        etFrom.setInputType(InputType.TYPE_CLASS_TEXT);
         etDestination = (EditText) findViewById(R.id.etDestination);
-        etWhen = (EditText) findViewById(R.id.etWhen);
+        etDestination.setInputType(InputType.TYPE_CLASS_TEXT);
+        tvWhen = (TextView) findViewById(R.id.etWhen);
+        tvWhen.setInputType(InputType.TYPE_CLASS_TEXT);
 
         // Buttons
         bAccount = (Button) findViewById(R.id.bAccount);
@@ -80,6 +86,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         bSearch = (Button) findViewById(R.id.bSearch);
         bTime = (Button) findViewById(R.id.bTime);
         bCurrentLoc = (Button) findViewById(R.id.bCurrentLoc);
+        bSearchPickup = (Button) findViewById(R.id.bSearchPickup);
 
         // Click listeners
         bAccount.setOnClickListener(this);
@@ -90,6 +97,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         bSearch.setOnClickListener(this);
         bTime.setOnClickListener(this);
         bCurrentLoc.setOnClickListener(this);
+        bSearchPickup.setOnClickListener(this);
 
         clientLocalStore = new ClientLocalStore(this);
         journeyLocalStore = new JourneyLocalStore(this, clientLocalStore.getLoggedInClient().id);
@@ -189,7 +197,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             case R.id.bRequest:
                 String from = etFrom.getText().toString();
                 String destination = etDestination.getText().toString();
-                String strWhen = etWhen.getText().toString();
+                String strWhen = tvWhen.getText().toString();
                 String payment = spinner.getSelectedItem().toString();
                 int clientID = clientLocalStore.getLoggedInClient().id;
 
@@ -223,7 +231,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 break;
 
             case R.id.bSearch:
-                search();
+                search(true);
+                break;
+
+            case R.id.bSearchPickup:
+                search(false);
                 break;
 
             case R.id.bHistory:
@@ -270,8 +282,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         timeDialogActivity.show(fragmentManager, "time");
     }
 
-    public void search() {
-        String location = etDestination.getText().toString();
+    public void search(Boolean flag) {
+        String location;
+
+        if (flag == true) {
+            location = etDestination.getText().toString();
+        } else {
+            location = etFrom.getText().toString();
+        }
 
         List<Address> addressList = null;
 
@@ -290,7 +308,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
             zoomToLocation(latLng);
-            etDestination.setText(getFullAddress(latLng.latitude, latLng.longitude));
+
+            if (flag == true) {
+                etDestination.setText(getFullAddress(latLng.latitude, latLng.longitude));
+            } else {
+                etFrom.setText(getFullAddress(latLng.latitude, latLng.longitude));
+            }
         }
     }
 
@@ -502,10 +525,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     public boolean isValidWhen(String when) {
         if (when.length() == 0) {
-            etWhen.setError("Please specify a time of pickup!");
+            tvWhen.setError("Please specify a time of pickup!");
             return false;
         } else if (when.length() > 100) {
-            etWhen.setError("Time in format DD/MM/YYYY HH:MM");
+            tvWhen.setError("Time in format DD/MM/YYYY HH:MM");
             return false;
         } else {
             return true;
@@ -527,7 +550,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onDialogMessage(String message, Calendar dateTime) {
         whenDate = dateTime;
-        etWhen.setText(message);
+        tvWhen.setText(message);
     }
 
     @Override

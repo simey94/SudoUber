@@ -3,6 +3,7 @@ package com.example.cs3301.cs3301_practical;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -21,9 +22,13 @@ public class RegisterActivity extends Activity implements View.OnClickListener {
         setContentView(R.layout.activity_register);
 
         etName = (EditText) findViewById(R.id.etName);
+        etName.setInputType(InputType.TYPE_CLASS_TEXT);
         etAge = (EditText) findViewById(R.id.etAge);
+        etAge.setInputType(InputType.TYPE_CLASS_TEXT);
         etUsername = (EditText) findViewById(R.id.etUsername);
+        etUsername.setInputType(InputType.TYPE_CLASS_TEXT);
         etPassword = (EditText) findViewById(R.id.etPassword);
+        etPassword.setInputType(InputType.TYPE_CLASS_TEXT);
         bRegister = (Button) findViewById(R.id.bRegister);
 
         bRegister.setOnClickListener(this);
