@@ -316,17 +316,27 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 e.printStackTrace();
             }
 
-            // Fetch address
-            Address address = addressList.get(0);
-            LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
-
-            mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
-            zoomToLocation(latLng);
-
-            if (flag == true) {
-                etDestination.setText(getFullAddress(latLng.latitude, latLng.longitude));
+            if (addressList == null || addressList.size() == 0) {
+                AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
+                dialogBuilder.setMessage("Address was not found please try again!");
+                dialogBuilder.setPositiveButton("OK", null);
+                dialogBuilder.show();
             } else {
-                etFrom.setText(getFullAddress(latLng.latitude, latLng.longitude));
+                // Fetch address
+                Address address = addressList.get(0);
+                if (address != null) {
+
+                    LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
+
+                    mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
+                    zoomToLocation(latLng);
+
+                    if (flag == true) {
+                        etDestination.setText(getFullAddress(latLng.latitude, latLng.longitude));
+                    } else {
+                        etFrom.setText(getFullAddress(latLng.latitude, latLng.longitude));
+                    }
+                }
             }
         }
     }
