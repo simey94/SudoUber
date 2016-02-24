@@ -25,6 +25,12 @@
             android:editable="false"
             android:layout_weight="1.01" />
 
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/ibDeletePickup"
+            android:src="@drawable/ic_delete" />
+
         <Button
             style="?android:attr/buttonStyleSmall"
             android:layout_width="wrap_content"
@@ -58,6 +64,12 @@
             android:layout_height="wrap_content"
             android:id="@+id/etDestination"
             android:layout_weight="1.11" />
+
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/ibDeleteDest"
+            android:src="@drawable/ic_delete" />
 
         <Button
             style="?android:attr/buttonStyleSmall"

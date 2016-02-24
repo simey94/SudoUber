@@ -23,6 +23,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.PopupMenu;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -48,6 +49,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     // UI elements
     Button bAccount, bMapType, bTaxi, bHistory, bRequest, bSearch, bTime, bCurrentLoc, bSearchPickup;
+    ImageButton ibDeletePickup, ibDeleteDest;
     PopupMenu popupMenu, histPopupMenu;
     EditText etName, etAge, etUsername, etFrom, etDestination;
     TextView tvWhen;
@@ -87,6 +89,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         bTime = (Button) findViewById(R.id.bTime);
         bCurrentLoc = (Button) findViewById(R.id.bCurrentLoc);
         bSearchPickup = (Button) findViewById(R.id.bSearchPickup);
+        ibDeletePickup = (ImageButton) findViewById(R.id.ibDeletePickup);
+        ibDeleteDest = (ImageButton) findViewById(R.id.ibDeleteDest);
+
+
 
         // Click listeners
         bAccount.setOnClickListener(this);
@@ -98,6 +104,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         bTime.setOnClickListener(this);
         bCurrentLoc.setOnClickListener(this);
         bSearchPickup.setOnClickListener(this);
+        ibDeletePickup.setOnClickListener(this);
+        ibDeleteDest.setOnClickListener(this);
 
         clientLocalStore = new ClientLocalStore(this);
         journeyLocalStore = new JourneyLocalStore(this, clientLocalStore.getLoggedInClient().id);
@@ -272,6 +280,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             case R.id.bCurrentLoc:
                 String pickupAdr = getFullAddress(currentLocation.getLatitude(), currentLocation.getLongitude());
                 etFrom.setText(pickupAdr);
+                break;
+            case R.id.ibDeletePickup:
+                etFrom.setText("");
+                break;
+            case R.id.ibDeleteDest:
+                etDestination.setText("");
                 break;
         }
     }
