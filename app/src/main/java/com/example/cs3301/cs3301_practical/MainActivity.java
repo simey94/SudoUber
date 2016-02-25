@@ -24,7 +24,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.PopupMenu;
@@ -42,6 +41,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -61,7 +61,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
     // UI elements
-    Button bAccount, bMapType, bTaxi, bHistory, bRequest, bSearch, bTime, bCurrentLoc, bSearchPickup;
     ImageButton ibDeletePickup, ibDeleteDest, ibHere, ibSearchPickup, ibSearchDes, ibTime, ibBookTaxi, ibAccount, ibHistory, ibMapType;
     PopupMenu popupMenu, histPopupMenu;
     EditText etName, etAge, etUsername, etFrom, etDestination;
@@ -97,7 +96,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         tvTime = (TextView) findViewById(R.id.tvTime);
         tvTime.setInputType(InputType.TYPE_CLASS_TEXT);
         tvTime.setTextColor(ContextCompat.getColor(this, R.color.RED));
-
 
         // Image buttons
         ibDeletePickup = (ImageButton) findViewById(R.id.ibDeletePickup);
@@ -154,10 +152,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 LatLng position = new LatLng(latitude, longitude);
 
                 markerOptions.position(position).title("Driver name: " + returnedDriver.name).snippet("Driver rating: " + returnedDriver.rating);
-
-                // Standard marker icon in case image is not found
-                BitmapDescriptor icon = BitmapDescriptorFactory
-                        .defaultMarker(BitmapDescriptorFactory.HUE_YELLOW);
 
                 BitmapDescriptor loaded_icon = BitmapDescriptorFactory
                         .fromResource(R.drawable.car_marker);
@@ -244,8 +238,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         Journey journey = new Journey(finalAddress, destination, pickupTime, payment, clientID);
                         storeJourney(journey);
                     } else {
-                        // explode
-
+                        Log.e("Error", "FinalAddress was null");
                     }
                 }
                 // Get the values of Pickup and Dest
@@ -264,8 +257,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 // Start downloading json data from Google Directions API
                 downloadTask.execute(url);
 
-                //drawLine(pickupLatLng, destLatLng);
-
+                String jsonString = new String("{ \"name\": \"msime\"}");
+                try {
+                    JSONObject jsonClient = new JSONObject(jsonString);
+                    Intent serviceIntent = new Intent(this, TaxiAlertIntentService.class);
+                    serviceIntent.putExtra("bookTrip", jsonClient.toString());
+                    startService(serviceIntent);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
                 break;
 
             case R.id.ibMapType:
@@ -343,7 +343,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Building the url to the web service
         String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + parameters;
-
         return url;
     }
 
