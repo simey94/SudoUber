@@ -49,7 +49,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     // UI elements
     Button bAccount, bMapType, bTaxi, bHistory, bRequest, bSearch, bTime, bCurrentLoc, bSearchPickup;
-    ImageButton ibDeletePickup, ibDeleteDest;
+    ImageButton ibDeletePickup, ibDeleteDest, ibHere, ibSearchPickup, ibSearchDes, ibTime, ibBookTaxi, ibAccount, ibHistory, ibMapType;
     PopupMenu popupMenu, histPopupMenu;
     EditText etName, etAge, etUsername, etFrom, etDestination;
     TextView tvWhen;
@@ -79,33 +79,31 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         tvWhen = (TextView) findViewById(R.id.etWhen);
         tvWhen.setInputType(InputType.TYPE_CLASS_TEXT);
 
-        // Buttons
-        bAccount = (Button) findViewById(R.id.bAccount);
-        bMapType = (Button) findViewById(R.id.bMapType);
-        bTaxi = (Button) findViewById(R.id.bRequest);
-        bHistory = (Button) findViewById(R.id.bHistory);
-        bRequest = (Button) findViewById(R.id.bRequest);
-        bSearch = (Button) findViewById(R.id.bSearch);
-        bTime = (Button) findViewById(R.id.bTime);
-        bCurrentLoc = (Button) findViewById(R.id.bCurrentLoc);
-        bSearchPickup = (Button) findViewById(R.id.bSearchPickup);
+
+        // Image buttons
         ibDeletePickup = (ImageButton) findViewById(R.id.ibDeletePickup);
         ibDeleteDest = (ImageButton) findViewById(R.id.ibDeleteDest);
+        ibHere = (ImageButton) findViewById(R.id.ibHere);
+        ibSearchPickup = (ImageButton) findViewById(R.id.ibSearchPickup);
+        ibSearchDes = (ImageButton) findViewById(R.id.ibSearchDes);
+        ibTime = (ImageButton) findViewById(R.id.ibTime);
+        ibBookTaxi = (ImageButton) findViewById(R.id.ibBookTaxi);
+        ibAccount = (ImageButton) findViewById(R.id.ibAccount);
+        ibHistory = (ImageButton) findViewById(R.id.ibHistory);
+        ibMapType = (ImageButton) findViewById(R.id.ibMapType);
 
 
-
-        // Click listeners
-        bAccount.setOnClickListener(this);
-        bMapType.setOnClickListener(this);
-        bTaxi.setOnClickListener(this);
-        bHistory.setOnClickListener(this);
-        bRequest.setOnClickListener(this);
-        bSearch.setOnClickListener(this);
-        bTime.setOnClickListener(this);
-        bCurrentLoc.setOnClickListener(this);
-        bSearchPickup.setOnClickListener(this);
+        // Image click listeners
         ibDeletePickup.setOnClickListener(this);
         ibDeleteDest.setOnClickListener(this);
+        ibHere.setOnClickListener(this);
+        ibSearchPickup.setOnClickListener(this);
+        ibSearchDes.setOnClickListener(this);
+        ibTime.setOnClickListener(this);
+        ibBookTaxi.setOnClickListener(this);
+        ibAccount.setOnClickListener(this);
+        ibHistory.setOnClickListener(this);
+        ibMapType.setOnClickListener(this);
 
         clientLocalStore = new ClientLocalStore(this);
         journeyLocalStore = new JourneyLocalStore(this, clientLocalStore.getLoggedInClient().id);
@@ -170,10 +168,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            case R.id.bAccount:
+            case R.id.ibAccount:
                 Log.e("HERE", "In bAccount");
                 // Create drop down to show options
-                popupMenu = new PopupMenu(this, bAccount);
+                popupMenu = new PopupMenu(this, ibHistory);
                 MenuInflater menuInflater = popupMenu.getMenuInflater();
                 menuInflater.inflate(R.menu.popup_actions, popupMenu.getMenu());
                 Log.e("HERE", "Created popup");
@@ -202,7 +200,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 popupMenu.show();
                 break;
 
-            case R.id.bRequest:
+            case R.id.ibBookTaxi:
                 String from = etFrom.getText().toString();
                 String destination = etDestination.getText().toString();
                 String strWhen = tvWhen.getText().toString();
@@ -234,21 +232,21 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 }
                 break;
 
-            case R.id.bMapType:
+            case R.id.ibMapType:
                 changeMapType();
                 break;
 
-            case R.id.bSearch:
+            case R.id.ibSearchDes:
                 search(true);
                 break;
 
-            case R.id.bSearchPickup:
+            case R.id.ibSearchPickup:
                 search(false);
                 break;
 
-            case R.id.bHistory:
+            case R.id.ibHistory:
                 // Create drop down to show options
-                histPopupMenu = new PopupMenu(this, bHistory);
+                histPopupMenu = new PopupMenu(this, ibHistory);
                 MenuInflater mI = histPopupMenu.getMenuInflater();
                 mI.inflate(R.menu.popup_history, histPopupMenu.getMenu());
 
@@ -273,11 +271,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 histPopupMenu.show();
                 break;
 
-            case R.id.bTime:
+            case R.id.ibTime:
                 showTimeDialog();
                 break;
 
-            case R.id.bCurrentLoc:
+            case R.id.ibHere:
                 String pickupAdr = getFullAddress(currentLocation.getLatitude(), currentLocation.getLongitude());
                 etFrom.setText(pickupAdr);
                 break;
@@ -574,7 +572,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onDialogMessage(String message, Calendar dateTime) {
         whenDate = dateTime;
-        tvWhen.setText(message);
+        tvWhen.setTextColor(ContextCompat.getColor(this, R.color.RED));
+        tvWhen.setText("Date and time requested: " + message);
     }
 
     @Override

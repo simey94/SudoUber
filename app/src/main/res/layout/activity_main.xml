@@ -31,19 +31,17 @@
             android:id="@+id/ibDeletePickup"
             android:src="@drawable/ic_delete" />
 
-        <Button
-            style="?android:attr/buttonStyleSmall"
+        <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Here"
-            android:id="@+id/bCurrentLoc" />
+            android:id="@+id/ibHere"
+            android:src="@drawable/ic_map" />
 
-        <Button
-            style="?android:attr/buttonStyleSmall"
+        <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Search"
-            android:id="@+id/bSearchPickup" />
+            android:id="@+id/ibSearchPickup"
+            android:src="@drawable/ic_search" />
 
     </LinearLayout>
 
@@ -53,6 +51,7 @@
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="To (optional)"
         android:id="@+id/textView2" />
+
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -71,15 +70,15 @@
             android:id="@+id/ibDeleteDest"
             android:src="@drawable/ic_delete" />
 
-        <Button
-            style="?android:attr/buttonStyleSmall"
-            android:layout_width="122dp"
+        <ImageButton
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Search"
-            android:id="@+id/bSearch"
-            android:layout_gravity="right" />
+            android:id="@+id/ibSearchDes"
+            android:layout_gravity="right"
+            android:src="@drawable/ic_search" />
 
     </LinearLayout>
+
 
     <TextView
         android:layout_width="wrap_content"
@@ -88,13 +87,11 @@
         android:text="When"
         android:id="@+id/textView3" />
 
-    <Button
-        style="?android:attr/buttonStyleSmall"
+    <ImageButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Select time"
-        android:id="@+id/bTime"
-        android:layout_gravity="center_horizontal" />
+        android:id="@+id/ibTime"
+        android:src="@drawable/ic_time" />
 
     <TextView
         android:layout_width="match_parent"
@@ -115,12 +112,12 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content" />
 
-    <Button
+    <ImageButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Request Taxi"
-        android:id="@+id/bRequest"
-        android:layout_gravity="center_horizontal" />
+        android:id="@+id/ibBookTaxi"
+        android:layout_gravity="center_horizontal"
+        android:src="@drawable/ic_book_taxi" />
 
     <LinearLayout
         android:orientation="horizontal"
@@ -128,27 +125,24 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal">
 
-        <Button
+        <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Account"
-            android:id="@+id/bAccount"
-            android:layout_gravity="right" />
+            android:id="@+id/ibAccount"
+            android:src="@drawable/ic_user" />
 
-        <Button
+        <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="History"
-            android:id="@+id/bHistory"
-            android:layout_gravity="right" />
+            android:id="@+id/ibHistory"
+            android:src="@drawable/ic_history" />
 
-        <Button
-            style="?android:attr/buttonStyleSmall"
-            android:layout_width="72dp"
+
+        <ImageButton
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Map Type"
-            android:id="@+id/bMapType"
-            android:nestedScrollingEnabled="false" />
+            android:id="@+id/ibMapType"
+            android:src="@drawable/ic_map_type" />
 
     </LinearLayout>
 
