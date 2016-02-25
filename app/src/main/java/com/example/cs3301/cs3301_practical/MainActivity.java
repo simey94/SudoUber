@@ -65,7 +65,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     ImageButton ibDeletePickup, ibDeleteDest, ibHere, ibSearchPickup, ibSearchDes, ibTime, ibBookTaxi, ibAccount, ibHistory, ibMapType;
     PopupMenu popupMenu, histPopupMenu;
     EditText etName, etAge, etUsername, etFrom, etDestination;
-    TextView tvWhen;
+    TextView tvWhen, tvDistance, tvTime;
     Spinner spinner;
     int clientID;
 
@@ -91,6 +91,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         etDestination.setInputType(InputType.TYPE_CLASS_TEXT);
         tvWhen = (TextView) findViewById(R.id.etWhen);
         tvWhen.setInputType(InputType.TYPE_CLASS_TEXT);
+        tvDistance = (TextView) findViewById(R.id.tvDistance);
+        tvDistance.setInputType(InputType.TYPE_CLASS_TEXT);
+        tvTime = (TextView) findViewById(R.id.tvTime);
+        tvTime.setInputType(InputType.TYPE_CLASS_TEXT);
 
 
         // Image buttons
@@ -444,6 +448,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             ArrayList<LatLng> points = null;
             PolylineOptions lineOptions = null;
             MarkerOptions markerOptions = new MarkerOptions();
+            String distance = "";
+            String duration = "";
 
             // Traversing through all the routes
             for (int i = 0; i < result.size(); i++) {
@@ -457,6 +463,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 for (int j = 0; j < path.size(); j++) {
                     HashMap<String, String> point = path.get(j);
 
+                    if (j == 0) {    // Get distance from the list
+                        distance = (String) point.get("distance");
+                        continue;
+                    } else if (j == 1) { // Get duration from the list
+                        duration = (String) point.get("duration");
+                        continue;
+                    }
+
                     double lat = Double.parseDouble(point.get("lat"));
                     double lng = Double.parseDouble(point.get("lng"));
                     LatLng position = new LatLng(lat, lng);
@@ -469,6 +483,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 lineOptions.width(2);
                 lineOptions.color(Color.RED);
             }
+
+            // Set distance and time labels
+            tvDistance.setText("Distance:" + distance);
+            tvTime.setText("Duration:" + duration);
 
             // Drawing polyline in the Google Map for the i-th route
             mMap.addPolyline(lineOptions);
