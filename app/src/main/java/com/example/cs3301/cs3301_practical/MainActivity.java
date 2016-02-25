@@ -3,8 +3,10 @@ package com.example.cs3301.cs3301_practical;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.app.FragmentManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
@@ -37,6 +39,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -218,7 +221,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 if (isValidBookingDetails(from, destination, strWhen, payment)) {
 
                     double currentLong = currentLocation.getLongitude(), currentLat = currentLocation.getLatitude();
-
                     String finalAddress = getFullAddress(currentLat, currentLong);
                     Log.e("FINAL ADDRESS: ", finalAddress);
 
@@ -230,6 +232,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                     }
                 }
+                // Get the values of Pickup and Dest
+                String strPickupAddress = etFrom.getText().toString();
+                String strDestinationAddress = etDestination.getText().toString();
+
+                // convert to lat lng vals
+                LatLng pickupLatLng = getLocationFromAddress(this, strPickupAddress);
+                LatLng destLatLng = getLocationFromAddress(this, strDestinationAddress);
+
+                drawLine(pickupLatLng, destLatLng);
                 break;
 
             case R.id.ibMapType:
@@ -360,6 +371,31 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 dialogBuilder.show();
             }
         });
+    }
+
+    public LatLng getLocationFromAddress(Context context, String strAddress) {
+
+        Geocoder coder = new Geocoder(context);
+        List<Address> address;
+        LatLng p1 = null;
+
+        try {
+            address = coder.getFromLocationName(strAddress, 5);
+            if (address == null) {
+                return null;
+            }
+            Address location = address.get(0);
+            location.getLatitude();
+            location.getLongitude();
+
+            p1 = new LatLng(location.getLatitude(), location.getLongitude());
+
+        } catch (Exception ex) {
+
+            ex.printStackTrace();
+        }
+
+        return p1;
     }
 
     private String getFullAddress(double latitude, double longitude) {
@@ -592,4 +628,35 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onNothingSelected(AdapterView<?> parent) {
 
     }
+
+    public void drawLine(LatLng pickup, LatLng destination) {
+        PolylineOptions line =
+                new PolylineOptions()
+                        .add(pickup, destination)
+                        .width(5)
+                        .color(Color.RED);
+        mMap.addPolyline(line);
+    }
+
+
+    /* Google Maps Direction Path */
+    public String makeURL(double sourcelat, double sourcelog, double destlat, double destlog) {
+        StringBuilder urlString = new StringBuilder();
+        urlString.append("http://maps.googleapis.com/maps/api/directions/json");
+        urlString.append("?origin=");// from
+        urlString.append(Double.toString(sourcelat));
+        urlString.append(",");
+        urlString
+                .append(Double.toString(sourcelog));
+        urlString.append("&destination=");// to
+        urlString
+                .append(Double.toString(destlat));
+        urlString.append(",");
+        urlString.append(Double.toString(destlog));
+        urlString.append("&sensor=false&mode=driving&alternatives=true");
+        urlString.append("&key=YOUR_API_KEY");
+        return urlString.toString();
+    }
+
+
 }
