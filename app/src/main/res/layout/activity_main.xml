@@ -62,7 +62,7 @@
             android:layout_width="377dp"
             android:layout_height="wrap_content"
             android:id="@+id/etDestination"
-            android:layout_weight="1.11" />
+            android:layout_weight="0.99" />
 
         <ImageButton
             android:layout_width="wrap_content"
@@ -123,7 +123,8 @@
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal">
+        android:layout_gravity="center_horizontal"
+        android:weightSum="1">
 
         <ImageButton
             android:layout_width="wrap_content"
@@ -144,26 +145,34 @@
             android:id="@+id/ibMapType"
             android:src="@drawable/ic_map_type" />
 
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
             android:text="Distance:"
             android:id="@+id/tvDistance" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Time:"
-            android:id="@+id/tvTime" />
-
     </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Time:"
+        android:id="@+id/tvTime" />
 
     <fragment xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="600dp"
-        android:layout_height="500dp"
+        android:layout_height="341dp"
         tools:context=".MainActivity" />
 
 </LinearLayout>

@@ -93,8 +93,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         tvWhen.setInputType(InputType.TYPE_CLASS_TEXT);
         tvDistance = (TextView) findViewById(R.id.tvDistance);
         tvDistance.setInputType(InputType.TYPE_CLASS_TEXT);
+        tvDistance.setTextColor(ContextCompat.getColor(this, R.color.RED));
         tvTime = (TextView) findViewById(R.id.tvTime);
         tvTime.setInputType(InputType.TYPE_CLASS_TEXT);
+        tvTime.setTextColor(ContextCompat.getColor(this, R.color.RED));
 
 
         // Image buttons
@@ -485,8 +487,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             // Set distance and time labels
-            tvDistance.setText("Distance:" + distance);
-            tvTime.setText("Duration:" + duration);
+            tvDistance.setText("Distance: " + distance);
+            tvTime.setText("Duration: " + duration);
 
             // Drawing polyline in the Google Map for the i-th route
             mMap.addPolyline(lineOptions);
@@ -831,26 +833,4 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         .color(Color.RED);
         mMap.addPolyline(line);
     }
-
-
-    /* Google Maps Direction Path */
-    public String makeURL(double sourcelat, double sourcelog, double destlat, double destlog) {
-        StringBuilder urlString = new StringBuilder();
-        urlString.append("http://maps.googleapis.com/maps/api/directions/json");
-        urlString.append("?origin=");// from
-        urlString.append(Double.toString(sourcelat));
-        urlString.append(",");
-        urlString
-                .append(Double.toString(sourcelog));
-        urlString.append("&destination=");// to
-        urlString
-                .append(Double.toString(destlat));
-        urlString.append(",");
-        urlString.append(Double.toString(destlog));
-        urlString.append("&sensor=false&mode=driving&alternatives=true");
-        urlString.append("&key=YOUR_API_KEY");
-        return urlString.toString();
-    }
-
-
 }
