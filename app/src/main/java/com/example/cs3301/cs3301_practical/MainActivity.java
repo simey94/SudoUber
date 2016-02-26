@@ -70,7 +70,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     Spinner spinner;
 
     Location currentLocation;
-    Calendar whenDate;
+    Calendar whenDate = Calendar.getInstance();
 
     // Local database objects
     ClientLocalStore clientLocalStore;
@@ -202,6 +202,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 // Maria DB format for insertion into db
                 String dateFormat = "yyyy-MM-dd hh:mm:ss";
                 SimpleDateFormat format = new SimpleDateFormat(dateFormat, Locale.UK);
+                if (whenDate.getTime() == null) {
+                    displayErrorMessage("Please enter a collection time!");
+                }
                 String pickupTime = format.format(whenDate.getTime());
 
                 // Input form validation
@@ -292,8 +295,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 histPopupMenu = new PopupMenu(this, ibHistory);
                 MenuInflater mI = histPopupMenu.getMenuInflater();
                 mI.inflate(R.menu.popup_history, histPopupMenu.getMenu());
-
-                Log.e("HERE", "Created History Popup");
 
                 // Fetch Journey details from Server
                 ServerRequest serverRequests = new ServerRequest(this);
@@ -736,7 +737,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             // Get the name of the best provider
             String provider = locationManager.getBestProvider(criteria, true);
 
-            // Check provider is avaliable
+            // Check provider is available
             if (locationManager.isProviderEnabled(provider)) {
                 // Get Current Location
                 Location myLocation = getLastKnownLocation();
@@ -817,6 +818,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public boolean isValidFrom(String fromLocation) {
+        Log.e("From", String.valueOf(fromLocation.length()));
         if (fromLocation.length() == 0) {
             etFrom.setError("Please specify a pickup location");
             return false;
@@ -829,11 +831,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public boolean isValidDestination(String destinationLocation) {
+        Log.e("From", String.valueOf(destinationLocation.length()));
         if (destinationLocation.length() == 0) {
-            etFrom.setError("Please specify a destination location");
+            etDestination.setError("Please specify a destination location");
             return false;
         } else if (destinationLocation.length() > 100) {
-            etFrom.setError("Location can only be up to 100 characters");
+            etDestination.setError("Location can only be up to 100 characters");
             return false;
         } else {
             return true;
@@ -842,10 +845,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     public boolean isValidWhen(String when) {
         if (when.length() == 0) {
-            tvWhen.setError("Please specify a time of pickup!");
+            displayErrorMessage("Please specify pick up date and time!");
             return false;
         } else if (when.length() > 100) {
-            tvWhen.setError("Time in format DD/MM/YYYY HH:MM");
+            displayErrorMessage("Date and Time in format DD/MM/YYYY HH:MM");
             return false;
         } else {
             return true;

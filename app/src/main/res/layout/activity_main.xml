@@ -21,7 +21,6 @@
             android:layout_width="171dp"
         android:layout_height="wrap_content"
         android:id="@+id/etFrom"
-        android:text="Current Location"
             android:editable="false"
             android:layout_weight="1.01" />
 
@@ -171,7 +170,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="New Text"
+        android:text="Cost in £"
         android:id="@+id/tvCost" />
 
     <fragment xmlns:android="http://schemas.android.com/apk/res/android"
