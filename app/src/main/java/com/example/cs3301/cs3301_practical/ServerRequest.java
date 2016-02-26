@@ -4,7 +4,6 @@ package com.example.cs3301.cs3301_practical;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.AsyncTask;
-import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -83,11 +82,6 @@ public class ServerRequest {
                     sb.append(line).append("\n");
                 }
 
-                line = sb.toString();
-
-                Log.i("custom_check", "The values received in the store part are as follows:");
-                Log.i("custom_check", line);
-
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
@@ -159,9 +153,6 @@ public class ServerRequest {
                     sb.append(line).append("\n");
                 }
                 line = sb.toString();
-                Log.i("custom_check", "The values received in the store part are as follows:");
-                Log.i("custom_check", line);
-                Log.i("LENGTH", line.length() + "");
 
                 if (line.length() > 10) {
                     JSONObject jsonObject = new JSONObject(line);
@@ -244,10 +235,6 @@ public class ServerRequest {
                 while ((line = reader.readLine()) != null) {
                     sb.append(line).append("\n");
                 }
-                line = sb.toString();
-
-                Log.i("custom_check", "The values received in the store part are as follows:");
-                Log.i("custom_check", line);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -316,8 +303,6 @@ public class ServerRequest {
                     sb.append(line).append("\n");
                 }
                 line = sb.toString();
-                Log.e("fetch", "The values received in the store part are as follows:");
-                Log.e("fetch", line);
 
                 if (line.length() > 10) {
                     JSONArray jsonArray = new JSONArray(line);
@@ -410,9 +395,6 @@ public class ServerRequest {
                     sb.append(line).append("\n");
                 }
                 line = sb.toString();
-                Log.e("custom_check", "The values received in the store part are as follows:");
-                Log.e("custom_check", line);
-                Log.e("LENGTH", line.length() + "");
 
                 if (line.length() > 10) {
                     try {
@@ -445,8 +427,6 @@ public class ServerRequest {
                     }
                 }
             }
-            // size in server = 0
-            Log.e("size server", String.valueOf(fetchedDrivers.size()));
             return fetchedDrivers;
         }
 
