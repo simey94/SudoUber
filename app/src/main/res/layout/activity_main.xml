@@ -90,6 +90,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/ibTime"
+        android:layout_gravity="center_horizontal"
         android:src="@drawable/ic_time" />
 
     <TextView
@@ -129,12 +130,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/ibAccount"
+            android:layout_gravity="right"
             android:src="@drawable/ic_user" />
 
         <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/ibHistory"
+            android:layout_gravity="right"
             android:src="@drawable/ic_history" />
 
 
@@ -142,6 +145,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/ibMapType"
+            android:layout_gravity="right"
             android:src="@drawable/ic_map_type" />
 
     </LinearLayout>
@@ -153,7 +157,6 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
             android:text="Distance:"
             android:id="@+id/tvDistance" />
 
@@ -162,14 +165,12 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="Time:"
         android:id="@+id/tvTime" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="Cost in £"
         android:id="@+id/tvCost" />
 

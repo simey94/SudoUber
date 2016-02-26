@@ -61,8 +61,8 @@ import java.util.regex.Pattern;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener, TimeDialogActivity.Communicator, AdapterView.OnItemSelectedListener {
 
-    private GoogleMap mMap;
     // UI elements
+    private GoogleMap mMap;
     ImageButton ibDeletePickup, ibDeleteDest, ibHere, ibSearchPickup, ibSearchDes, ibTime, ibBookTaxi, ibAccount, ibHistory, ibMapType;
     PopupMenu popupMenu, histPopupMenu;
     EditText etName, etAge, etUsername, etFrom, etDestination;
@@ -143,6 +143,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        histPopupMenu = new PopupMenu(this, ibHistory);
+        fetchHistoryRecords();
     }
 
     @Override
@@ -154,10 +156,71 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private boolean authenticate() {
-        // returns true if user is logged in
-        return clientLocalStore.getClientLoggedin();
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+        setUpMap();
     }
+
+    LocationManager locationManager;
+
+    private void setUpMap() {
+        // Enable MyLocation Layer of Google Map
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+
+            // Enables location button to move to user location
+            mMap.setMyLocationEnabled(true);
+
+            // Get LocationManager object from System Service LOCATION_SERVICE
+            locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+            // Create a criteria object to retrieve provider
+            Criteria criteria = new Criteria();
+
+            // Get the name of the best provider
+            String provider = locationManager.getBestProvider(criteria, true);
+
+            // Check provider is available
+            if (locationManager.isProviderEnabled(provider)) {
+                // Get Current Location
+                Location myLocation = getLastKnownLocation();
+                if (myLocation != null) {
+
+                    //set map type
+                    mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+
+                    // Get latitude of the current location
+                    double latitude = myLocation.getLatitude();
+
+                    // Get longitude of the current location
+                    double longitude = myLocation.getLongitude();
+
+                    // Create a LatLng object for the current location
+                    LatLng latLng = new LatLng(latitude, longitude);
+
+                    mMap.addMarker(new MarkerOptions().position(latLng).title("You are here!"));
+                    mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
+                    zoomToLocation(latLng);
+
+                    currentLocation = myLocation;
+
+                } else {
+                    // display error
+                    Log.e("SudoUber", "Perms check failed");
+                }
+            } else {
+                // provider not avaliable
+                Log.e("SudoUber", "Provider not avaliable error");
+            }
+
+        } else {
+            // Show rationale and request permission.
+            Log.d("SudoUber", "Permissions not accepted");
+        }
+    }
+
+    /* Button click handler */
 
     @Override
     public void onClick(View view) {
@@ -165,117 +228,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             case R.id.ibAccount:
 
                 // Create drop down to show options
-                popupMenu = new PopupMenu(this, ibHistory);
+                popupMenu = new PopupMenu(this, ibAccount);
                 MenuInflater menuInflater = popupMenu.getMenuInflater();
                 menuInflater.inflate(R.menu.popup_actions, popupMenu.getMenu());
 
                 //get client info
                 Client client = clientLocalStore.getLoggedInClient();
-                // loop through menu items
-                popupMenu.getMenu().findItem(R.id.id_id).setTitle("ID: " + client.id);
-                popupMenu.getMenu().findItem(R.id.id_name).setTitle("Name: " + client.name);
-                popupMenu.getMenu().findItem(R.id.id_username).setTitle("Username: " + client.username);
-                popupMenu.getMenu().findItem(R.id.id_age).setTitle("Age: " + client.age);
-                popupMenu.getMenu().findItem(R.id.id_logout).setTitle("Logout");
-
-                // click handler
-                popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    public boolean onMenuItemClick(MenuItem item) {
-                        if (item.getItemId() == R.id.id_logout) {
-                            clientLocalStore.clearClientData();
-                            clientLocalStore.setClientLoggedIn(false);
-                            startActivity(new Intent(MainActivity.this, LoginActivity.class));
-                        }
-                        return true;
-                    }
-                });
+                setAccountPopup(client, popupMenu);
                 popupMenu.show();
                 break;
 
             case R.id.ibBookTaxi:
-                String from = etFrom.getText().toString();
-                String destination = etDestination.getText().toString();
-                String strWhen = tvWhen.getText().toString();
-                String payment = spinner.getSelectedItem().toString();
-                int clientID = clientLocalStore.getLoggedInClient().id;
-
-                // Maria DB format for insertion into db
-                String dateFormat = "yyyy-MM-dd hh:mm:ss";
-                SimpleDateFormat format = new SimpleDateFormat(dateFormat, Locale.UK);
-                if (whenDate.getTime() == null) {
-                    displayErrorMessage("Please enter a collection time!");
-                }
-                String pickupTime = format.format(whenDate.getTime());
-
-                // Input form validation
-                if (isValidBookingDetails(from, destination, strWhen, payment)) {
-
-                    double currentLong = currentLocation.getLongitude(), currentLat = currentLocation.getLatitude();
-                    String finalAddress = getFullAddress(currentLat, currentLong);
-
-                    // Get the values of Pickup and Dest
-                    String strPickupAddress = etFrom.getText().toString();
-                    String strDestinationAddress = etDestination.getText().toString();
-
-                    // convert to lat lng vals
-                    LatLng pickupLatLng = getLocationFromAddress(this, strPickupAddress);
-                    LatLng destLatLng = getLocationFromAddress(this, strDestinationAddress);
-
-                    if (finalAddress != null) {
-                        Journey journey = new Journey(pickupLatLng.latitude, pickupLatLng.longitude, destLatLng.latitude, destLatLng.longitude, pickupTime, payment, clientID);
-                        storeJourney(journey);
-
-                        ServerRequest serverRequests = new ServerRequest(this);
-                        serverRequests.fetchDriverDataInBackground(journey, new GetDriverCallBack() {
-                            @Override
-                            public void done(ArrayList<Driver> returnedDrivers) {
-                                if (returnedDrivers == null || returnedDrivers.size() == 0) {
-                                    displayErrorMessage("Could not fetch any drivers");
-                                } else {
-
-                                    for (int i = 0; i < returnedDrivers.size(); i++) {
-
-                                        MarkerOptions markerOptions = new MarkerOptions();
-
-                                        // get lat long of driver
-                                        Double latitude = Double.parseDouble(String.valueOf(returnedDrivers.get(i).lat));
-                                        Double longitude = Double.parseDouble(String.valueOf(returnedDrivers.get(i).posLong));
-                                        LatLng position = new LatLng(latitude, longitude);
-
-                                        markerOptions.position(position).title("Driver name: " + returnedDrivers.get(i).name).snippet("Driver rating: " + returnedDrivers.get(i).rating);
-
-                                        BitmapDescriptor loaded_icon = BitmapDescriptorFactory
-                                                .fromResource(R.drawable.car_marker);
-                                        markerOptions.icon(loaded_icon);
-
-                                        mMap.addMarker(markerOptions);
-                                    }
-                                }
-                            }
-                        });
-
-                    } else {
-                        Log.e("Error", "FinalAddress was null");
-                    }
-
-                    // Getting URL to the Google Directions API
-                    String url = getDirectionsUrl(pickupLatLng, destLatLng);
-
-                    DownloadTask downloadTask = new DownloadTask();
-
-                    // Start downloading json data from Google Directions API
-                    downloadTask.execute(url);
-
-                    String jsonString = new String("{ \"name\": \"msime\"}");
-                    try {
-                        JSONObject jsonClient = new JSONObject(jsonString);
-                        Intent serviceIntent = new Intent(this, TaxiAlertIntentService.class);
-                        serviceIntent.putExtra("bookTrip", jsonClient.toString());
-                        startService(serviceIntent);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
+                bookTaxi();
                 break;
 
             case R.id.ibMapType:
@@ -291,30 +255,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 break;
 
             case R.id.ibHistory:
-                // Create drop down to show options
-                histPopupMenu = new PopupMenu(this, ibHistory);
-                MenuInflater mI = histPopupMenu.getMenuInflater();
-                mI.inflate(R.menu.popup_history, histPopupMenu.getMenu());
-
-                // Fetch Journey details from Server
-                ServerRequest serverRequests = new ServerRequest(this);
-                serverRequests.fetchJourneyDataInBackground(clientLocalStore.getLoggedInClient(), new GetJourneyCallBack() {
-                    @Override
-                    public void getJourneys(ArrayList<Journey> journeys) {
-                        if (journeys.size() == 0 || journeys == null) {
-                            displayErrorMessage("No history found!");
-                        } else {
-                            for (int i = 0; i < journeys.size(); i++) {
-                                Log.e("Array list", String.valueOf(journeys.get(i).clientID));
-                                setJourneyHistory(journeys.get(i));
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void saveJourney(Journey returnedJourney) {
-                    }
-                });
+                histPopupMenu.show();
                 break;
 
             case R.id.ibTime:
@@ -334,6 +275,132 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    private void bookTaxi() {
+        String from = etFrom.getText().toString();
+        String destination = etDestination.getText().toString();
+        String strWhen = tvWhen.getText().toString();
+        String payment = spinner.getSelectedItem().toString();
+        int clientID = clientLocalStore.getLoggedInClient().id;
+
+        // Maria DB format for insertion into db
+        String dateFormat = "yyyy-MM-dd hh:mm:ss";
+        SimpleDateFormat format = new SimpleDateFormat(dateFormat, Locale.UK);
+        String pickupTime = format.format(whenDate.getTime());
+
+        // Input form validation
+        if (isValidBookingDetails(from, destination, strWhen, payment)) {
+
+            double currentLong = currentLocation.getLongitude(), currentLat = currentLocation.getLatitude();
+            String finalAddress = getFullAddress(currentLat, currentLong);
+
+            // Get the values of Pickup and Dest
+            String strPickupAddress = etFrom.getText().toString();
+            String strDestinationAddress = etDestination.getText().toString();
+
+            // convert to lat lng vals
+            LatLng pickupLatLng = getLocationFromAddress(this, strPickupAddress);
+            LatLng destLatLng = getLocationFromAddress(this, strDestinationAddress);
+
+            if (finalAddress != null) {
+                Journey journey = new Journey(pickupLatLng.latitude, pickupLatLng.longitude, destLatLng.latitude, destLatLng.longitude, pickupTime, payment, clientID);
+                storeJourney(journey);
+
+                ServerRequest serverRequests = new ServerRequest(this);
+                serverRequests.fetchDriverDataInBackground(journey, new GetDriverCallBack() {
+                    @Override
+                    public void done(ArrayList<Driver> returnedDrivers) {
+                        if (returnedDrivers == null || returnedDrivers.size() == 0) {
+                            displayErrorMessage("Could not fetch any drivers");
+                        } else {
+
+                            for (int i = 0; i < returnedDrivers.size(); i++) {
+
+                                MarkerOptions markerOptions = new MarkerOptions();
+
+                                // get lat long of driver
+                                Double latitude = Double.parseDouble(String.valueOf(returnedDrivers.get(i).lat));
+                                Double longitude = Double.parseDouble(String.valueOf(returnedDrivers.get(i).posLong));
+                                LatLng position = new LatLng(latitude, longitude);
+
+                                markerOptions.position(position).title("Driver name: " + returnedDrivers.get(i).name).snippet("Driver rating: " + returnedDrivers.get(i).rating);
+
+                                BitmapDescriptor loaded_icon = BitmapDescriptorFactory
+                                        .fromResource(R.drawable.car_marker);
+                                markerOptions.icon(loaded_icon);
+
+                                mMap.addMarker(markerOptions);
+                            }
+                        }
+                    }
+                });
+
+            } else {
+                Log.e("Error", "FinalAddress was null");
+            }
+
+            // Getting URL to the Google Directions API
+            String url = getDirectionsUrl(pickupLatLng, destLatLng);
+
+            DownloadTask downloadTask = new DownloadTask();
+
+            // Start downloading json data from Google Directions API
+            downloadTask.execute(url);
+
+            String jsonString = "{ \"name\": \"msime\"}";
+            try {
+                JSONObject jsonClient = new JSONObject(jsonString);
+                Intent serviceIntent = new Intent(this, TaxiAlertIntentService.class);
+                serviceIntent.putExtra("bookTrip", jsonClient.toString());
+                startService(serviceIntent);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void setAccountPopup(Client client, PopupMenu popupMenu) {
+        // loop through menu items
+        popupMenu.getMenu().findItem(R.id.id_id).setTitle("ID: " + client.id);
+        popupMenu.getMenu().findItem(R.id.id_name).setTitle("Name: " + client.name);
+        popupMenu.getMenu().findItem(R.id.id_username).setTitle("Username: " + client.username);
+        popupMenu.getMenu().findItem(R.id.id_age).setTitle("Age: " + client.age);
+        popupMenu.getMenu().findItem(R.id.id_logout).setTitle("Logout");
+
+        // click handler
+        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            public boolean onMenuItemClick(MenuItem item) {
+                if (item.getItemId() == R.id.id_logout) {
+                    clientLocalStore.clearClientData();
+                    clientLocalStore.setClientLoggedIn(false);
+                    startActivity(new Intent(MainActivity.this, LoginActivity.class));
+                }
+                return true;
+            }
+        });
+    }
+
+    private void fetchHistoryRecords() {
+        // Fetch Journey details from Server
+        ServerRequest serverRequests = new ServerRequest(this);
+        serverRequests.fetchJourneyDataInBackground(clientLocalStore.getLoggedInClient(), new GetJourneyCallBack() {
+            @Override
+            public void getJourneys(ArrayList<Journey> journeys) {
+                if (journeys.size() == 0 || journeys == null) {
+                    displayErrorMessage("No history found!");
+                } else {
+                    for (int i = 0; i < journeys.size(); i++) {
+                        Log.e("Array list", String.valueOf(journeys.get(i).clientID));
+                        setJourneyHistory(journeys.get(i));
+                    }
+                }
+            }
+
+            @Override
+            public void saveJourney(Journey returnedJourney) {
+            }
+        });
+    }
+
     private void displayErrorMessage(String s) {
         AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
         dialogBuilder.setMessage(s);
@@ -342,13 +409,203 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
+    // sets popup history menu values
     private void setJourneyHistory(Journey journey) {
         String pickupLoc = getSmallAddress(journey.pickupLat, journey.pickupLong);
         String destLoc = getSmallAddress(journey.destinationLat, journey.destinationLong);
-
+        // Create drop down to show options
+        MenuInflater mI = histPopupMenu.getMenuInflater();
+        mI.inflate(R.menu.popup_history, histPopupMenu.getMenu());
         histPopupMenu.getMenu().add(pickupLoc + " ~ " + destLoc);
-        histPopupMenu.show();
     }
+
+    public void showTimeDialog() {
+        FragmentManager fragmentManager = getFragmentManager();
+        TimeDialogActivity timeDialogActivity = new TimeDialogActivity();
+        timeDialogActivity.show(fragmentManager, "time");
+    }
+
+    public void search(Boolean flag) {
+        String location;
+
+        if (flag == true) {
+            location = etDestination.getText().toString();
+        } else {
+            location = etFrom.getText().toString();
+        }
+
+        List<Address> addressList = null;
+
+        if (location != null || !(location != "")) {
+
+            Geocoder geocoder = new Geocoder(this);
+            try {
+                addressList = geocoder.getFromLocationName(location, 1);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            if (addressList == null || addressList.size() == 0) {
+                AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
+                dialogBuilder.setMessage("Address was not found please try again!");
+                dialogBuilder.setPositiveButton("OK", null);
+                dialogBuilder.show();
+            } else {
+                // Fetch address
+                Address address = addressList.get(0);
+                if (address != null) {
+
+                    LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
+
+                    mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
+                    zoomToLocation(latLng);
+
+                    if (flag == true) {
+                        etDestination.setText(getFullAddress(latLng.latitude, latLng.longitude));
+                    } else {
+                        etFrom.setText(getFullAddress(latLng.latitude, latLng.longitude));
+                    }
+                }
+            }
+        }
+    }
+
+    public void changeMapType() {
+        if (mMap.getMapType() == GoogleMap.MAP_TYPE_NORMAL) {
+            mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+        }
+        // Map is satellite
+        else {
+            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        }
+    }
+
+    private void storeJourney(Journey journey) {
+        ServerRequest serverRequest = new ServerRequest(this);
+        serverRequest.storeJourneyDataInBackground(journey, new GetJourneyCallBack() {
+            @Override
+            public void saveJourney(Journey journey) {
+                AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
+                dialogBuilder.setMessage("Order stored");
+                dialogBuilder.setPositiveButton("OK", null);
+                dialogBuilder.show();
+            }
+
+            @Override
+            public void getJourneys(ArrayList<Journey> journeys) {
+            }
+        });
+    }
+
+    /* -------- Address Helper Methods -------- */
+
+    public LatLng getLocationFromAddress(Context context, String strAddress) {
+
+        Geocoder coder = new Geocoder(context);
+        List<Address> address;
+        LatLng p1 = null;
+
+        try {
+            address = coder.getFromLocationName(strAddress, 5);
+            if (address == null) {
+                return null;
+            }
+            Address location = address.get(0);
+            location.getLatitude();
+            location.getLongitude();
+
+            p1 = new LatLng(location.getLatitude(), location.getLongitude());
+
+        } catch (Exception ex) {
+
+            ex.printStackTrace();
+        }
+
+        return p1;
+    }
+
+    private String getSmallAddress(double latitude, double longitude) {
+        Geocoder geocoder;
+        List<Address> addresses = null;
+        geocoder = new Geocoder(this, Locale.getDefault());
+
+        try {
+            addresses = geocoder.getFromLocation(latitude, longitude, 1);
+            if (addresses != null) {
+                StringBuilder sb = new StringBuilder();
+                //Address Line
+                for (int i = 0; i < 1; i++) {
+                    if (addresses.get(0).getAddressLine(i) != null)
+                        sb.append(addresses.get(0).getAddressLine(i)).append("\n");
+                }
+                return sb.toString();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private String getFullAddress(double latitude, double longitude) {
+        Geocoder geocoder;
+        List<Address> addresses = null;
+        geocoder = new Geocoder(this, Locale.getDefault());
+
+        try {
+            addresses = geocoder.getFromLocation(latitude, longitude, 1);
+            if (addresses != null) {
+                StringBuilder sb = new StringBuilder();
+                int numberOfAddressLines = addresses.get(0).getMaxAddressLineIndex();
+                //Address Line
+                for (int i = 0; i < numberOfAddressLines; i++) {
+                    if (addresses.get(0).getAddressLine(i) != null)
+                        sb.append(addresses.get(0).getAddressLine(i)).append("\n");
+                }
+                if (addresses.get(0).getCountryName() != null) {
+                    sb.append(addresses.get(0).getCountryName()).append("\n");
+                }
+                return sb.toString();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private Location getLastKnownLocation() {
+        locationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
+        List<String> providers = locationManager.getProviders(true);
+        Location bestLocation = null;
+        for (String provider : providers) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+                return null;
+            }
+            Location l = locationManager.getLastKnownLocation(provider);
+            if (l == null) {
+                continue;
+            }
+            if (bestLocation == null || l.getAccuracy() > bestLocation.getAccuracy()) {
+                // Found best last known location: %s", l);
+                bestLocation = l;
+            }
+        }
+        return bestLocation;
+    }
+
+    // Zooms in Maps to location specified in param
+    private void zoomToLocation(LatLng latLng) {
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(latLng)
+                .zoom(17)
+                .bearing(0)
+                .tilt(40)
+                .build();
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+    }
+
+
+    /* -------- Directions Helper Methods -------- */
 
     private String getDirectionsUrl(LatLng pickup, LatLng dest) {
 
@@ -506,14 +763,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 // Adding all the points in the route to LineOptions
                 lineOptions.addAll(points);
-                lineOptions.width(2);
+                lineOptions.width(8);
                 lineOptions.color(Color.RED);
             }
 
             // Set distance and time labels
             tvDistance.setText("Distance: " + distance);
             tvTime.setText("Duration: " + duration);
-            // ("-?[\\d\\.]+")
 
             Pattern p = Pattern.compile("-?[\\d\\.]+");
             float distanceNum = 0, durationNum = 0;
@@ -533,284 +789,37 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    public void showTimeDialog() {
-        FragmentManager fragmentManager = getFragmentManager();
-        TimeDialogActivity timeDialogActivity = new TimeDialogActivity();
-        timeDialogActivity.show(fragmentManager, "time");
-    }
-
-    public void search(Boolean flag) {
-        String location;
-
-        if (flag == true) {
-            location = etDestination.getText().toString();
-        } else {
-            location = etFrom.getText().toString();
-        }
-
-        List<Address> addressList = null;
-
-        if (location != null || !(location != "")) {
-
-            Geocoder geocoder = new Geocoder(this);
-            try {
-                addressList = geocoder.getFromLocationName(location, 1);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            if (addressList == null || addressList.size() == 0) {
-                AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
-                dialogBuilder.setMessage("Address was not found please try again!");
-                dialogBuilder.setPositiveButton("OK", null);
-                dialogBuilder.show();
-            } else {
-                // Fetch address
-                Address address = addressList.get(0);
-                if (address != null) {
-
-                    LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
-
-                    mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
-                    zoomToLocation(latLng);
-
-                    if (flag == true) {
-                        etDestination.setText(getFullAddress(latLng.latitude, latLng.longitude));
-                    } else {
-                        etFrom.setText(getFullAddress(latLng.latitude, latLng.longitude));
-                    }
-                }
-            }
-        }
-    }
-
-    public void changeMapType() {
-        if (mMap.getMapType() == GoogleMap.MAP_TYPE_NORMAL) {
-            mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
-        }
-        // Map is satellite
-        else {
-            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-        }
-    }
-
-    private void storeJourney(Journey journey) {
-        ServerRequest serverRequest = new ServerRequest(this);
-        serverRequest.storeJourneyDataInBackground(journey, new GetJourneyCallBack() {
-            @Override
-            public void saveJourney(Journey journey) {
-                AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
-                dialogBuilder.setMessage("Order stored");
-                dialogBuilder.setPositiveButton("OK", null);
-                dialogBuilder.show();
-            }
-
-            @Override
-            public void getJourneys(ArrayList<Journey> journeys) {
-            }
-        });
-    }
-
-    public LatLng getLocationFromAddress(Context context, String strAddress) {
-
-        Geocoder coder = new Geocoder(context);
-        List<Address> address;
-        LatLng p1 = null;
-
-        try {
-            address = coder.getFromLocationName(strAddress, 5);
-            if (address == null) {
-                return null;
-            }
-            Address location = address.get(0);
-            location.getLatitude();
-            location.getLongitude();
-
-            p1 = new LatLng(location.getLatitude(), location.getLongitude());
-
-        } catch (Exception ex) {
-
-            ex.printStackTrace();
-        }
-
-        return p1;
-    }
-
-    private String getSmallAddress(double latitude, double longitude) {
-        Geocoder geocoder;
-        List<Address> addresses = null;
-        geocoder = new Geocoder(this, Locale.getDefault());
-
-        try {
-            addresses = geocoder.getFromLocation(latitude, longitude, 1);
-            if (addresses != null) {
-                StringBuilder sb = new StringBuilder();
-                //Address Line
-                for (int i = 0; i < 1; i++) {
-                    if (addresses.get(0).getAddressLine(i) != null)
-                        sb.append(addresses.get(0).getAddressLine(i)).append("\n");
-                }
-                return sb.toString();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private String getFullAddress(double latitude, double longitude) {
-        Geocoder geocoder;
-        List<Address> addresses = null;
-        geocoder = new Geocoder(this, Locale.getDefault());
-
-        try {
-            addresses = geocoder.getFromLocation(latitude, longitude, 1);
-            if (addresses != null) {
-                StringBuilder sb = new StringBuilder();
-                int numberOfAddressLines = addresses.get(0).getMaxAddressLineIndex();
-                //Address Line
-                for (int i = 0; i < numberOfAddressLines; i++) {
-                    if (addresses.get(0).getAddressLine(i) != null)
-                        sb.append(addresses.get(0).getAddressLine(i)).append("\n");
-                }
-                if (addresses.get(0).getCountryName() != null) {
-                    sb.append(addresses.get(0).getCountryName()).append("\n");
-                }
-                return sb.toString();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-
-        // Add a marker in Sydney and move the camera
-        LatLng position = new LatLng(-34, 151);
-        String title = "I'm a car!";
-        String snippet = "BROOM BROOM";
-        MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.position(position).title(title).snippet(snippet);
-
-        // Standard marker icon in case image is not found
-        BitmapDescriptor icon = BitmapDescriptorFactory
-                .defaultMarker(BitmapDescriptorFactory.HUE_YELLOW);
-
-        BitmapDescriptor loaded_icon = BitmapDescriptorFactory
-                .fromResource(R.drawable.car_marker);
-        markerOptions.icon(loaded_icon);
-
-        mMap.addMarker(markerOptions);
-        //mMap.moveCamera(CameraUpdateFactory.newLatLng(position));
-
-        setUpMap();
+    public void onDialogMessage(String message, Calendar dateTime) {
+        whenDate = dateTime;
+        tvWhen.setTextColor(ContextCompat.getColor(this, R.color.RED));
+        tvWhen.setText("Date and time requested: " + message);
     }
 
-    LocationManager locationManager;
-
-    private void setUpMap() {
-        // Enable MyLocation Layer of Google Map
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-
-            // Enables location button to move to user location
-            mMap.setMyLocationEnabled(true);
-
-            // Get LocationManager object from System Service LOCATION_SERVICE
-            locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-
-            // Create a criteria object to retrieve provider
-            Criteria criteria = new Criteria();
-
-            // Get the name of the best provider
-            String provider = locationManager.getBestProvider(criteria, true);
-
-            // Check provider is available
-            if (locationManager.isProviderEnabled(provider)) {
-                // Get Current Location
-                Location myLocation = getLastKnownLocation();
-                if (myLocation != null) {
-
-                    //locationManager.getLastKnownLocation(provider);
-
-                    //set map type
-                    mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-
-                    // Get latitude of the current location
-                    double latitude = myLocation.getLatitude();
-
-                    // Get longitude of the current location
-                    double longitude = myLocation.getLongitude();
-
-                    // Create a LatLng object for the current location
-                    LatLng latLng = new LatLng(latitude, longitude);
-
-                    mMap.addMarker(new MarkerOptions().position(latLng).title("You are here!"));
-                    mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
-                    zoomToLocation(latLng);
-
-                    currentLocation = myLocation;
-
-                } else {
-                    // display error
-                    Log.e("SudoUber", "Perms check failed");
-                }
-            } else {
-                // provider not avaliable
-                Log.e("SudoUber", "Provider not avaliable error");
-            }
-
-        } else {
-            // Show rationale and request permission.
-            Log.d("SudoUber", "Permissions not accepted");
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        // get item selected
+        if (parent.getItemAtPosition(position).equals("Card")) {
+            AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
+            dialogBuilder.setMessage("Card Payments are not available at this time! Please use cash");
+            dialogBuilder.setPositiveButton("OK", null);
+            dialogBuilder.show();
+            parent.setSelection(0);
         }
     }
 
-    private Location getLastKnownLocation() {
-        locationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
-        List<String> providers = locationManager.getProviders(true);
-        Location bestLocation = null;
-        for (String provider : providers) {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
 
-                return null;
-            }
-            Location l = locationManager.getLastKnownLocation(provider);
-            if (l == null) {
-                continue;
-            }
-            if (bestLocation == null || l.getAccuracy() > bestLocation.getAccuracy()) {
-                // Found best last known location: %s", l);
-                bestLocation = l;
-            }
-        }
-        return bestLocation;
     }
 
-    // Zooms in Maps to location specified in param
-    private void zoomToLocation(LatLng latLng) {
-        CameraPosition cameraPosition = new CameraPosition.Builder()
-                .target(latLng)
-                .zoom(17)
-                .bearing(0)
-                .tilt(40)
-                .build();
-        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+    private boolean authenticate() {
+        // returns true if user is logged in
+        return clientLocalStore.isClientLoggedIn();
     }
 
-    /* Booking Form Validation Methods */
+    /* -------- Booking Form Validation Methods -------- */
+
     public boolean isValidBookingDetails(String from, String destination, String when, String payment) {
         if (isValidFrom(from) && isValidDestination(destination) && isValidWhen(when) && isValidPayment(payment))
             return true;
@@ -865,38 +874,5 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         } else {
             return true;
         }
-    }
-
-    @Override
-    public void onDialogMessage(String message, Calendar dateTime) {
-        whenDate = dateTime;
-        tvWhen.setTextColor(ContextCompat.getColor(this, R.color.RED));
-        tvWhen.setText("Date and time requested: " + message);
-    }
-
-    @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        // get item selected
-        if (parent.getItemAtPosition(position).equals("Card")) {
-            AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
-            dialogBuilder.setMessage("Card Payments are not available at this time! Please use cash");
-            dialogBuilder.setPositiveButton("OK", null);
-            dialogBuilder.show();
-            parent.setSelection(0);
-        }
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {
-
-    }
-
-    public void drawLine(LatLng pickup, LatLng destination) {
-        PolylineOptions line =
-                new PolylineOptions()
-                        .add(pickup, destination)
-                        .width(5)
-                        .color(Color.RED);
-        mMap.addPolyline(line);
     }
 }

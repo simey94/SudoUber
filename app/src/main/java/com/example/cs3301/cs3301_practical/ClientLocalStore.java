@@ -50,7 +50,7 @@ public class ClientLocalStore {
         spEditor.commit();
     }
 
-    public boolean getClientLoggedin(){
+    public boolean isClientLoggedIn() {
         // user is logged out
         // user is logged in
         if(clientLocalDatabase.getBoolean("loggedIn", false)) return true;

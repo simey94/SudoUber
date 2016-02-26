@@ -59,12 +59,6 @@ public class ServerRequest {
         new fetchJourneyDataAsyncTask(client, journeyCallBack).execute();
     }
 
-    /* Store and Fetch Driver Details */
-//    public void storeDriverDataInBackground(Driver driver, GetDriverCallBack driverCallBack) {
-//        progressDialog.show();
-//        //new storeDriverDataInBackground(driver,driverCallBack).execute();
-//    }
-
     public void fetchDriverDataInBackground(Journey journey, GetDriverCallBack driverCallBack) {
         progressDialog.show();
         new fetchDriverDataAsyncTask(journey, driverCallBack).execute();
