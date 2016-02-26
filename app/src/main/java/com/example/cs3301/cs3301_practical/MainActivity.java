@@ -56,6 +56,8 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener, TimeDialogActivity.Communicator, AdapterView.OnItemSelectedListener {
 
@@ -152,7 +154,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    // tells if user is logged in or out
     private boolean authenticate() {
         // returns true if user is logged in
         return clientLocalStore.getClientLoggedin();
@@ -162,12 +163,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.ibAccount:
-                Log.e("HERE", "In bAccount");
+
                 // Create drop down to show options
                 popupMenu = new PopupMenu(this, ibHistory);
                 MenuInflater menuInflater = popupMenu.getMenuInflater();
                 menuInflater.inflate(R.menu.popup_actions, popupMenu.getMenu());
-                Log.e("HERE", "Created popup");
+
                 //get client info
                 Client client = clientLocalStore.getLoggedInClient();
                 // loop through menu items
@@ -177,12 +178,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 popupMenu.getMenu().findItem(R.id.id_age).setTitle("Age: " + client.age);
                 popupMenu.getMenu().findItem(R.id.id_logout).setTitle("Logout");
 
-                Log.e("HERE", "Created a lot of things");
                 // click handler
                 popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                     public boolean onMenuItemClick(MenuItem item) {
                         if (item.getItemId() == R.id.id_logout) {
-                            Log.e("HERE", "In logout");
                             clientLocalStore.clearClientData();
                             clientLocalStore.setClientLoggedIn(false);
                             startActivity(new Intent(MainActivity.this, LoginActivity.class));
@@ -203,16 +202,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 // Maria DB format for insertion into db
                 String dateFormat = "yyyy-MM-dd hh:mm:ss";
                 SimpleDateFormat format = new SimpleDateFormat(dateFormat, Locale.UK);
-                Log.e("WHEN DATE: ", "" + whenDate.getTime());
                 String pickupTime = format.format(whenDate.getTime());
-                Log.e("APRES Format", "" + pickupTime);
 
                 // Input form validation
                 if (isValidBookingDetails(from, destination, strWhen, payment)) {
 
                     double currentLong = currentLocation.getLongitude(), currentLat = currentLocation.getLatitude();
                     String finalAddress = getFullAddress(currentLat, currentLong);
-                    Log.e("FINAL ADDRESS: ", finalAddress);
 
                     // Get the values of Pickup and Dest
                     String strPickupAddress = etFrom.getText().toString();
@@ -230,7 +226,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         serverRequests.fetchDriverDataInBackground(journey, new GetDriverCallBack() {
                             @Override
                             public void done(ArrayList<Driver> returnedDrivers) {
-                                Log.e("Returned drivers", String.valueOf(returnedDrivers.size()));
                                 if (returnedDrivers == null || returnedDrivers.size() == 0) {
                                     displayErrorMessage("Could not fetch any drivers");
                                 } else {
@@ -241,9 +236,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                                         // get lat long of driver
                                         Double latitude = Double.parseDouble(String.valueOf(returnedDrivers.get(i).lat));
-                                        Log.e("Returned drivers", String.valueOf(returnedDrivers.get(i).lat));
                                         Double longitude = Double.parseDouble(String.valueOf(returnedDrivers.get(i).posLong));
-                                        Log.e("Returned drivers", String.valueOf(returnedDrivers.get(i).posLong));
                                         LatLng position = new LatLng(latitude, longitude);
 
                                         markerOptions.position(position).title("Driver name: " + returnedDrivers.get(i).name).snippet("Driver rating: " + returnedDrivers.get(i).rating);
@@ -345,7 +338,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         dialogBuilder.setMessage(s);
         dialogBuilder.setPositiveButton("OK", null);
         dialogBuilder.show();
-
     }
 
 
@@ -479,9 +471,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         // Executes in UI thread, after the parsing process
         @Override
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
-            ArrayList<LatLng> points = null;
+            ArrayList<LatLng> points;
             PolylineOptions lineOptions = null;
-            MarkerOptions markerOptions = new MarkerOptions();
             String distance = "";
             String duration = "";
 
@@ -521,15 +512,20 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             // Set distance and time labels
             tvDistance.setText("Distance: " + distance);
             tvTime.setText("Duration: " + duration);
+            // ("-?[\\d\\.]+")
 
-            //String regex = "\\d+";
-//            Pattern p = Pattern.compile("(\\d+)");
-//            Matcher m = p.matcher(distance);
-//            int distanceNum = Integer.parseInt(String.valueOf(m.group()));
-//            Matcher m2 = p.matcher(duration);
-//            int durationNum = Integer.parseInt(String.valueOf(m2.group()));
-//
-//            tvCost.setText("£" + distanceNum * durationNum * 0.3);
+            Pattern p = Pattern.compile("-?[\\d\\.]+");
+            float distanceNum = 0, durationNum = 0;
+            Matcher m = p.matcher(distance);
+            while (m.find()) {
+                distanceNum = Float.parseFloat(String.valueOf(m.group()));
+            }
+            Matcher m2 = p.matcher(duration);
+            while (m2.find()) {
+                durationNum = Float.parseFloat(String.valueOf(m2.group()));
+            }
+            float price = (float) ((distanceNum * durationNum) * 0.3);
+            tvCost.setText("£" + price);
 
             // Drawing polyline in the Google Map for the i-th route
             mMap.addPolyline(lineOptions);
