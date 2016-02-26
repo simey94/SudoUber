@@ -7,6 +7,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -25,7 +26,6 @@ public class ServerRequest {
 
     ProgressDialog progressDialog;
 
-    public static final int CONNECTION_TIMEOUT = 1000 * 15;
     public static final String SERVER_ADDRESS = "https://ms255.host.cs.st-andrews.ac.uk/";
 
     public ServerRequest(Context context){
@@ -60,16 +60,15 @@ public class ServerRequest {
     }
 
     /* Store and Fetch Driver Details */
-    public void storeDriverDataInBackground(Driver driver, GetDriverCallBack driverCallBack) {
-        progressDialog.show();
-        //new storeDriverDataInBackground(driver,driverCallBack).execute();
-    }
+//    public void storeDriverDataInBackground(Driver driver, GetDriverCallBack driverCallBack) {
+//        progressDialog.show();
+//        //new storeDriverDataInBackground(driver,driverCallBack).execute();
+//    }
 
-    public void fetchDriverDataInBackground(Driver driver, GetDriverCallBack driverCallBack) {
+    public void fetchDriverDataInBackground(Journey journey, GetDriverCallBack driverCallBack) {
         progressDialog.show();
-        new fetchDriverDataAsyncTask(driver, driverCallBack).execute();
+        new fetchDriverDataAsyncTask(journey, driverCallBack).execute();
     }
-
 
     public class StoreOrderDataAsyncTask extends AsyncTask<Void, Void, Void> {
         Journey journey;
@@ -209,9 +208,6 @@ public class ServerRequest {
                     }
                 }
             }
-//            for(int i =0; i<returnedJournies.size(); i++){
-//                Log.e("Array list vals", String.valueOf(returnedJournies.get(i).clientID));
-//            }
             return returnedJournies;
         }
 
@@ -219,7 +215,7 @@ public class ServerRequest {
         @Override
         protected void onPostExecute(ArrayList<Journey> returnedJournies) {
             super.onPostExecute(returnedJournies);
-            journeyCallBack.getJournies(returnedJournies);
+            journeyCallBack.getJourneys(returnedJournies);
             progressDialog.dismiss();
         }
 
@@ -374,28 +370,29 @@ public class ServerRequest {
 
     }
 
-    public class fetchDriverDataAsyncTask extends AsyncTask<Void, Void, Driver> {
-        Driver driver;
+    public class fetchDriverDataAsyncTask extends AsyncTask<Void, Void, ArrayList<Driver>> {
+        Journey journey;
         GetDriverCallBack driverCallBack;
 
-        public fetchDriverDataAsyncTask(Driver driver, GetDriverCallBack driverCallBack) {
-            this.driver = driver;
+        public fetchDriverDataAsyncTask(Journey journey, GetDriverCallBack driverCallBack) {
+            this.journey = journey;
             this.driverCallBack = driverCallBack;
         }
 
         @Override
-        protected Driver doInBackground(Void... params) {
+        protected ArrayList<Driver> doInBackground(Void... params) {
+            ArrayList<Driver> fetchedDrivers = new ArrayList<>();
+
             // id, name, rating, lat, long
             Map<String, String> dataToSend = new HashMap<>();
-            //dataToSend.put("id", driver.id);
-            dataToSend.put("name", "" + driver.name);
-            dataToSend.put("rating", "" + driver.rating);
-            dataToSend.put("lat", driver.lat);
-            dataToSend.put("posLong", "" + driver.posLong);
+            dataToSend.put("lat", String.valueOf(journey.pickupLat));
+            dataToSend.put("posLong", String.valueOf(journey.pickupLong));
+            // radius of 30 miles
+            dataToSend.put("radius", String.valueOf(50));
+
 
             String encodedStr = getEncodedData(dataToSend);
             BufferedReader reader = null;
-            Driver returnedDriver = null;
 
             try {
                 URL url = new URL(SERVER_ADDRESS + "FetchDriverData.php");
@@ -417,21 +414,30 @@ public class ServerRequest {
                     sb.append(line).append("\n");
                 }
                 line = sb.toString();
-                Log.i("custom_check", "The values received in the store part are as follows:");
-                Log.i("custom_check", line);
-                Log.i("LENGTH", line.length() + "");
+                Log.e("custom_check", "The values received in the store part are as follows:");
+                Log.e("custom_check", line);
+                Log.e("LENGTH", line.length() + "");
 
                 if (line.length() > 10) {
-                    JSONObject jsonObject = new JSONObject(line);
-                    String name = jsonObject.getString("name");
-                    String rating = jsonObject.getString("rating");
-                    String lat = jsonObject.getString("lat");
-                    String posLong = jsonObject.getString("posLong");
-
-                    // TODO: ID maybe
-                    returnedDriver = new Driver(name, rating, lat, posLong);
+                    try {
+                        JSONArray array = new JSONArray(line);
+                        for (int i = 0; i < array.length(); i++) {
+                            JSONObject obj = array.getJSONObject(i);
+                            int id = obj.getInt("id");
+                            String name = obj.getString("name");
+                            int rating = obj.getInt("rating");
+                            int isAvailable = obj.getInt("available");
+                            boolean isA = (isAvailable == 1);
+                            double lat = obj.getDouble("lat");
+                            double posLong = obj.getDouble("posLong");
+                            Driver driver = new Driver(id, name,
+                                    rating, isA, lat, posLong);
+                            fetchedDrivers.add(driver);
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 }
-
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
@@ -443,15 +449,16 @@ public class ServerRequest {
                     }
                 }
             }
-
-            return returnedDriver;
+            // size in server = 0
+            Log.e("size server", String.valueOf(fetchedDrivers.size()));
+            return fetchedDrivers;
         }
 
         @Override
-        protected void onPostExecute(Driver returnedDriver) {
+        protected void onPostExecute(ArrayList<Driver> returnedDrivers) {
+            super.onPostExecute(returnedDrivers);
             progressDialog.dismiss();
-            driverCallBack.done(returnedDriver);
-            super.onPostExecute(returnedDriver);
+            driverCallBack.done(returnedDrivers);
         }
     }
 

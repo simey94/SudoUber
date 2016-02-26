@@ -64,9 +64,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     ImageButton ibDeletePickup, ibDeleteDest, ibHere, ibSearchPickup, ibSearchDes, ibTime, ibBookTaxi, ibAccount, ibHistory, ibMapType;
     PopupMenu popupMenu, histPopupMenu;
     EditText etName, etAge, etUsername, etFrom, etDestination;
-    TextView tvWhen, tvDistance, tvTime;
+    TextView tvWhen, tvDistance, tvTime, tvCost;
     Spinner spinner;
-    int clientID;
 
     Location currentLocation;
     Calendar whenDate;
@@ -96,6 +95,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         tvTime = (TextView) findViewById(R.id.tvTime);
         tvTime.setInputType(InputType.TYPE_CLASS_TEXT);
         tvTime.setTextColor(ContextCompat.getColor(this, R.color.RED));
+        tvCost = (TextView) findViewById(R.id.tvCost);
+        tvCost.setInputType(InputType.TYPE_CLASS_TEXT);
+        tvCost.setTextColor(ContextCompat.getColor(this, R.color.RED));
+
 
         // Image buttons
         ibDeletePickup = (ImageButton) findViewById(R.id.ibDeletePickup);
@@ -138,29 +141,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
-        ServerRequest serverRequests = new ServerRequest(this);
-        Driver driver = new Driver("test1", "5", "56.335054", "-2.806343");
-        serverRequests.fetchDriverDataInBackground(driver, new GetDriverCallBack() {
-            @Override
-            public void done(Driver returnedDriver) {
-                MarkerOptions markerOptions = new MarkerOptions();
-
-                // get lat long of driver
-                Double latitude = Double.parseDouble(returnedDriver.lat);
-                Double longitude = Double.parseDouble(returnedDriver.posLong);
-                LatLng position = new LatLng(latitude, longitude);
-
-                markerOptions.position(position).title("Driver name: " + returnedDriver.name).snippet("Driver rating: " + returnedDriver.rating);
-
-                BitmapDescriptor loaded_icon = BitmapDescriptorFactory
-                        .fromResource(R.drawable.car_marker);
-                markerOptions.icon(loaded_icon);
-
-                mMap.addMarker(markerOptions);
-                zoomToLocation(position);
-            }
-        });
     }
 
     @Override
@@ -245,6 +225,39 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     if (finalAddress != null) {
                         Journey journey = new Journey(pickupLatLng.latitude, pickupLatLng.longitude, destLatLng.latitude, destLatLng.longitude, pickupTime, payment, clientID);
                         storeJourney(journey);
+
+                        ServerRequest serverRequests = new ServerRequest(this);
+                        serverRequests.fetchDriverDataInBackground(journey, new GetDriverCallBack() {
+                            @Override
+                            public void done(ArrayList<Driver> returnedDrivers) {
+                                Log.e("Returned drivers", String.valueOf(returnedDrivers.size()));
+                                if (returnedDrivers == null || returnedDrivers.size() == 0) {
+                                    displayErrorMessage("Could not fetch any drivers");
+                                } else {
+
+                                    for (int i = 0; i < returnedDrivers.size(); i++) {
+
+                                        MarkerOptions markerOptions = new MarkerOptions();
+
+                                        // get lat long of driver
+                                        Double latitude = Double.parseDouble(String.valueOf(returnedDrivers.get(i).lat));
+                                        Log.e("Returned drivers", String.valueOf(returnedDrivers.get(i).lat));
+                                        Double longitude = Double.parseDouble(String.valueOf(returnedDrivers.get(i).posLong));
+                                        Log.e("Returned drivers", String.valueOf(returnedDrivers.get(i).posLong));
+                                        LatLng position = new LatLng(latitude, longitude);
+
+                                        markerOptions.position(position).title("Driver name: " + returnedDrivers.get(i).name).snippet("Driver rating: " + returnedDrivers.get(i).rating);
+
+                                        BitmapDescriptor loaded_icon = BitmapDescriptorFactory
+                                                .fromResource(R.drawable.car_marker);
+                                        markerOptions.icon(loaded_icon);
+
+                                        mMap.addMarker(markerOptions);
+                                    }
+                                }
+                            }
+                        });
+
                     } else {
                         Log.e("Error", "FinalAddress was null");
                     }
@@ -293,19 +306,19 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 ServerRequest serverRequests = new ServerRequest(this);
                 serverRequests.fetchJourneyDataInBackground(clientLocalStore.getLoggedInClient(), new GetJourneyCallBack() {
                     @Override
-                    public void saveJourney(Journey returnedJourney) {
-                    }
-
-                    @Override
-                    public void getJournies(ArrayList<Journey> journeys) {
+                    public void getJourneys(ArrayList<Journey> journeys) {
                         if (journeys.size() == 0 || journeys == null) {
-                            // handle error
+                            displayErrorMessage("No history found!");
                         } else {
                             for (int i = 0; i < journeys.size(); i++) {
                                 Log.e("Array list", String.valueOf(journeys.get(i).clientID));
                                 setJourneyHistory(journeys.get(i));
                             }
                         }
+                    }
+
+                    @Override
+                    public void saveJourney(Journey returnedJourney) {
                     }
                 });
                 break;
@@ -326,6 +339,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 break;
         }
     }
+
+    private void displayErrorMessage(String s) {
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
+        dialogBuilder.setMessage(s);
+        dialogBuilder.setPositiveButton("OK", null);
+        dialogBuilder.show();
+
+    }
+
 
     private void setJourneyHistory(Journey journey) {
         String pickupLoc = getSmallAddress(journey.pickupLat, journey.pickupLong);
@@ -500,6 +522,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             tvDistance.setText("Distance: " + distance);
             tvTime.setText("Duration: " + duration);
 
+            //String regex = "\\d+";
+//            Pattern p = Pattern.compile("(\\d+)");
+//            Matcher m = p.matcher(distance);
+//            int distanceNum = Integer.parseInt(String.valueOf(m.group()));
+//            Matcher m2 = p.matcher(duration);
+//            int durationNum = Integer.parseInt(String.valueOf(m2.group()));
+//
+//            tvCost.setText("£" + distanceNum * durationNum * 0.3);
+
             // Drawing polyline in the Google Map for the i-th route
             mMap.addPolyline(lineOptions);
         }
@@ -578,7 +609,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             @Override
-            public void getJournies(ArrayList<Journey> journeys) {
+            public void getJourneys(ArrayList<Journey> journeys) {
             }
         });
     }

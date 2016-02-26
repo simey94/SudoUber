@@ -8,6 +8,6 @@ import java.util.ArrayList;
 public interface GetJourneyCallBack {
     void saveJourney(Journey journey);
 
-    void getJournies(ArrayList<Journey> journeys);
+    void getJourneys(ArrayList<Journey> journeys);
 
 }
