@@ -164,6 +164,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     LocationManager locationManager;
 
+    /*  Gets permissions and gets users current location and places a marker there. */
     private void setUpMap() {
         // Enable MyLocation Layer of Google Map
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -220,7 +221,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    /* Button click handler */
+    /* Button click handler - used to handle most user interactions */
 
     @Override
     public void onClick(View view) {
@@ -275,6 +276,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    /* Creates a Journey object from user specified fields and then stores in database */
     private void bookTaxi() {
         String from = etFrom.getText().toString();
         String destination = etDestination.getText().toString();
@@ -360,6 +362,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    /* Set the values of the Account popup menu with logged in client info */
     private void setAccountPopup(Client client, PopupMenu popupMenu) {
         // loop through menu items
         popupMenu.getMenu().findItem(R.id.id_id).setTitle("ID: " + client.id);
@@ -381,6 +384,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
+    /* Gets the values of the history popup menu with logged in clients previous journies */
     private void fetchHistoryRecords() {
         // Fetch Journey details from Server
         ServerRequest serverRequests = new ServerRequest(this);
@@ -402,15 +406,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-    private void displayErrorMessage(String s) {
-        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
-        dialogBuilder.setMessage(s);
-        dialogBuilder.setPositiveButton("OK", null);
-        dialogBuilder.show();
-    }
-
-
-    // sets popup history menu values
+    /* sets popup history menu values */
     private void setJourneyHistory(Journey journey) {
         String pickupLoc = getSmallAddress(journey.pickupLat, journey.pickupLong);
         String destLoc = getSmallAddress(journey.destinationLat, journey.destinationLong);
@@ -420,12 +416,23 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         histPopupMenu.getMenu().add(pickupLoc + " ~ " + destLoc);
     }
 
+    /* General method used to simplify error alerting */
+    private void displayErrorMessage(String s) {
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
+        dialogBuilder.setMessage(s);
+        dialogBuilder.setPositiveButton("OK", null);
+        dialogBuilder.show();
+    }
+
+
+    /* Manages fragment which popups with timepicker object */
     public void showTimeDialog() {
         FragmentManager fragmentManager = getFragmentManager();
         TimeDialogActivity timeDialogActivity = new TimeDialogActivity();
         timeDialogActivity.show(fragmentManager, "time");
     }
 
+    /* General search method utilised to find a location within the map and place a marker there */
     public void search(Boolean flag) {
         String location;
 
@@ -468,6 +475,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    /* Swaps GoogleMap type from Normal to Satellite */
     public void changeMapType() {
         if (mMap.getMapType() == GoogleMap.MAP_TYPE_NORMAL) {
             mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
@@ -497,6 +505,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     /* -------- Address Helper Methods -------- */
 
+    /* Get LatLng of a String Address */
     public LatLng getLocationFromAddress(Context context, String strAddress) {
 
         Geocoder coder = new Geocoder(context);
@@ -522,6 +531,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return p1;
     }
 
+    /* Return only street names used to make History popup less intrusive */
     private String getSmallAddress(double latitude, double longitude) {
         Geocoder geocoder;
         List<Address> addresses;
@@ -544,6 +554,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return null;
     }
 
+    /* Get a full address i.e. Street, Town, Country, PostCode from LatLng posistion */
     private String getFullAddress(double latitude, double longitude) {
         Geocoder geocoder;
         List<Address> addresses;
@@ -570,6 +581,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return null;
     }
 
+    /* Gets the user's last known location based on numerous location tracking services */
     private Location getLastKnownLocation() {
         locationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
         List<String> providers = locationManager.getProviders(true);
@@ -591,7 +603,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return bestLocation;
     }
 
-    // Zooms in Maps to location specified in param
+    /* Animates camera to zoom in on a specified location */
     private void zoomToLocation(LatLng latLng) {
         CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(latLng)
@@ -626,9 +638,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return "https://maps.googleapis.com/maps/api/directions/" + output + "?" + parameters;
     }
 
-    /**
-     * A method to download json data from url
-     */
+    /* Download JSON data from a URL */
     private String downloadUrl(String strUrl) throws IOException {
         String data = "";
         InputStream iStream = null;
@@ -667,7 +677,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return data;
     }
 
-    // Fetches data from url passed
+    /* Fetches data from the URL passed in */
     private class DownloadTask extends AsyncTask<String, Void, String> {
 
         // Downloading data in non-ui thread
@@ -699,9 +709,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    /**
-     * A class to parse the Google Places in JSON format
-     */
+
+    /* A class to parse the Google Places in JSON format */
     private class ParserTask extends AsyncTask<String, Integer, List<List<HashMap<String, String>>>> {
 
         // Parsing the data in non-ui thread
@@ -723,7 +732,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             return routes;
         }
 
-        // Executes in UI thread, after the parsing process
+        /* Executes in UI thread, after the parsing process */
         @Override
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             ArrayList<LatLng> points;
@@ -834,7 +843,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public boolean isValidDestination(String destinationLocation) {
-        if (destinationLocation.length() == 0) {
+        if (destinationLocation.length() == 0 || destinationLocation == null) {
             etDestination.setError("Please specify a destination location");
             return false;
         } else if (destinationLocation.length() > 100) {
@@ -861,7 +870,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if (payment.length() == 0) {
             //tPayment.setError("Please specify a payment method!");
             return false;
-        } else if (payment.length() > 100) {
+        } else if (payment.length() > 10) {
             //etPayment.setError("Location can only be cash or card!");
             return false;
         } else {
