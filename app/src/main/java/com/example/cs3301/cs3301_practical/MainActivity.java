@@ -207,16 +207,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 } else {
                     // display error
-                    Log.e("SudoUber", "Perms check failed");
+                    displayErrorMessage("Permission check failed!");
                 }
             } else {
-                // provider not avaliable
-                Log.e("SudoUber", "Provider not avaliable error");
+                // provider not available
+                displayErrorMessage("Location Provider check failed!");
             }
 
         } else {
             // Show rationale and request permission.
-            Log.d("SudoUber", "Permissions not accepted");
+            displayErrorMessage("Permission check failed!");
         }
     }
 
@@ -345,8 +345,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             // Start downloading json data from Google Directions API
             downloadTask.execute(url);
+            StringBuilder sb = new StringBuilder();
+            sb.append("{").append("\"name\"").append(":").append("\"").append(clientLocalStore.getLoggedInClient().name).append("\"").append("}");
 
-            String jsonString = "{ \"name\": \"msime\"}";
+            String jsonString = sb.toString();
             try {
                 JSONObject jsonClient = new JSONObject(jsonString);
                 Intent serviceIntent = new Intent(this, TaxiAlertIntentService.class);
@@ -389,7 +391,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     displayErrorMessage("No history found!");
                 } else {
                     for (int i = 0; i < journeys.size(); i++) {
-                        Log.e("Array list", String.valueOf(journeys.get(i).clientID));
                         setJourneyHistory(journeys.get(i));
                     }
                 }
@@ -821,7 +822,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public boolean isValidFrom(String fromLocation) {
-        Log.e("From", String.valueOf(fromLocation.length()));
         if (fromLocation.length() == 0) {
             etFrom.setError("Please specify a pickup location");
             return false;
@@ -834,7 +834,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public boolean isValidDestination(String destinationLocation) {
-        Log.e("From", String.valueOf(destinationLocation.length()));
         if (destinationLocation.length() == 0) {
             etDestination.setError("Please specify a destination location");
             return false;
