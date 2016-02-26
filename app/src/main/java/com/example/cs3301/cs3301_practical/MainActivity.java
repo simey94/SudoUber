@@ -385,7 +385,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         serverRequests.fetchJourneyDataInBackground(clientLocalStore.getLoggedInClient(), new GetJourneyCallBack() {
             @Override
             public void getJourneys(ArrayList<Journey> journeys) {
-                if (journeys.size() == 0 || journeys == null) {
+                if (journeys.size() == 0) {
                     displayErrorMessage("No history found!");
                 } else {
                     for (int i = 0; i < journeys.size(); i++) {
@@ -428,7 +428,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void search(Boolean flag) {
         String location;
 
-        if (flag == true) {
+        if (flag) {
             location = etDestination.getText().toString();
         } else {
             location = etFrom.getText().toString();
@@ -436,35 +436,32 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         List<Address> addressList = null;
 
-        if (location != null || !(location != "")) {
+        Geocoder geocoder = new Geocoder(this);
+        try {
+            addressList = geocoder.getFromLocationName(location, 1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-            Geocoder geocoder = new Geocoder(this);
-            try {
-                addressList = geocoder.getFromLocationName(location, 1);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        if (addressList == null || addressList.size() == 0) {
+            AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
+            dialogBuilder.setMessage("Address was not found please try again!");
+            dialogBuilder.setPositiveButton("OK", null);
+            dialogBuilder.show();
+        } else {
+            // Fetch address
+            Address address = addressList.get(0);
+            if (address != null) {
 
-            if (addressList == null || addressList.size() == 0) {
-                AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
-                dialogBuilder.setMessage("Address was not found please try again!");
-                dialogBuilder.setPositiveButton("OK", null);
-                dialogBuilder.show();
-            } else {
-                // Fetch address
-                Address address = addressList.get(0);
-                if (address != null) {
+                LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
 
-                    LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
+                mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
+                zoomToLocation(latLng);
 
-                    mMap.addMarker(new MarkerOptions().position(latLng).title("You searched for here!"));
-                    zoomToLocation(latLng);
-
-                    if (flag == true) {
-                        etDestination.setText(getFullAddress(latLng.latitude, latLng.longitude));
-                    } else {
-                        etFrom.setText(getFullAddress(latLng.latitude, latLng.longitude));
-                    }
+                if (flag) {
+                    etDestination.setText(getFullAddress(latLng.latitude, latLng.longitude));
+                } else {
+                    etFrom.setText(getFullAddress(latLng.latitude, latLng.longitude));
                 }
             }
         }
@@ -526,7 +523,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private String getSmallAddress(double latitude, double longitude) {
         Geocoder geocoder;
-        List<Address> addresses = null;
+        List<Address> addresses;
         geocoder = new Geocoder(this, Locale.getDefault());
 
         try {
@@ -548,7 +545,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private String getFullAddress(double latitude, double longitude) {
         Geocoder geocoder;
-        List<Address> addresses = null;
+        List<Address> addresses;
         geocoder = new Geocoder(this, Locale.getDefault());
 
         try {
@@ -625,8 +622,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         String output = "json";
 
         // Building the url to the web service
-        String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + parameters;
-        return url;
+        return "https://maps.googleapis.com/maps/api/directions/" + output + "?" + parameters;
     }
 
     /**
@@ -736,7 +732,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             // Traversing through all the routes
             for (int i = 0; i < result.size(); i++) {
-                points = new ArrayList<LatLng>();
+                points = new ArrayList<>();
                 lineOptions = new PolylineOptions();
 
                 // Fetching i-th route
@@ -747,10 +743,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     HashMap<String, String> point = path.get(j);
 
                     if (j == 0) {    // Get distance from the list
-                        distance = (String) point.get("distance");
+                        distance = point.get("distance");
                         continue;
                     } else if (j == 1) { // Get duration from the list
-                        duration = (String) point.get("duration");
+                        duration = point.get("duration");
                         continue;
                     }
 
@@ -821,9 +817,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     /* -------- Booking Form Validation Methods -------- */
 
     public boolean isValidBookingDetails(String from, String destination, String when, String payment) {
-        if (isValidFrom(from) && isValidDestination(destination) && isValidWhen(when) && isValidPayment(payment))
-            return true;
-        else return false;
+        return isValidFrom(from) && isValidDestination(destination) && isValidWhen(when) && isValidPayment(payment);
     }
 
     public boolean isValidFrom(String fromLocation) {
