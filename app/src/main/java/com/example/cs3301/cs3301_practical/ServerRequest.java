@@ -42,33 +42,171 @@ public class ServerRequest {
         new StoreClientDataAsyncTask(client,clientCallBack).execute();
     }
 
+    public class StoreClientDataAsyncTask extends AsyncTask<Void, Void, Void> {
+        Client client;
+        GetClientCallBack clientCallBack;
+
+        public StoreClientDataAsyncTask(Client client, GetClientCallBack clientCallBack) {
+            this.client = client;
+            this.clientCallBack = clientCallBack;
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+
+            Map<String, String> dataToSend = new HashMap<>();
+            dataToSend.put("name", client.name);
+            dataToSend.put("username", client.username);
+            dataToSend.put("password", client.password);
+            dataToSend.put("age", client.age + "");
+
+            String encodedStr = getEncodedData(dataToSend);
+            BufferedReader reader = null;
+
+            try {
+                URL url = new URL(SERVER_ADDRESS + "Register.php");
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+                con.setRequestMethod("POST");
+                con.setDoOutput(true);
+
+                OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream());
+
+                writer.write(encodedStr);
+                writer.flush();
+
+                StringBuilder sb = new StringBuilder();
+                reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
+
+                line = sb.toString();
+
+                Log.i("custom_check", "The values received in the store part are as follows:");
+                Log.i("custom_check", line);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (reader != null) {
+                    try {
+                        reader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            return null;
+        }
+
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            progressDialog.dismiss();
+            clientCallBack.done(null);
+            super.onPostExecute(aVoid);
+        }
+    }
+
     public void fetchClientDataInBackground(Client client, GetClientCallBack callBack){
         progressDialog.show();
         new fetchClientDataAsyncTask(client, callBack).execute();
     }
 
-    /* Stores Order Data on the Server */
+    public class fetchClientDataAsyncTask extends AsyncTask<Void, Void, Client> {
+        Client client;
+        GetClientCallBack clientCallBack;
+
+        public fetchClientDataAsyncTask(Client client, GetClientCallBack clientCallBack) {
+            this.client = client;
+            this.clientCallBack = clientCallBack;
+        }
+
+        @Override
+        protected Client doInBackground(Void... params) {
+
+            Map<String, String> dataToSend = new HashMap<>();
+            dataToSend.put("name", client.name);
+            dataToSend.put("age", client.age + "");
+            dataToSend.put("username", client.username);
+            dataToSend.put("password", client.password);
+
+            String encodedStr = getEncodedData(dataToSend);
+            BufferedReader reader = null;
+            Client returnedClient = null;
+
+            try {
+                URL url = new URL(SERVER_ADDRESS + "FetchUserData.php");
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+                con.setRequestMethod("POST");
+                con.setDoOutput(true);
+
+                OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream());
+
+                writer.write(encodedStr);
+                writer.flush();
+
+                StringBuilder sb = new StringBuilder();
+                reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
+                line = sb.toString();
+                Log.i("custom_check", "The values received in the store part are as follows:");
+                Log.i("custom_check", line);
+                Log.i("LENGTH", line.length() + "");
+
+                if (line.length() > 10) {
+                    JSONObject jsonObject = new JSONObject(line);
+                    String name = jsonObject.getString("name");
+                    int age = jsonObject.getInt("age");
+                    int id = jsonObject.getInt("id");
+                    returnedClient = new Client(id, name, client.username, client.password, age);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (reader != null) {
+                    try {
+                        reader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            return returnedClient;
+        }
+
+        @Override
+        protected void onPostExecute(Client returnedClient) {
+            progressDialog.dismiss();
+            clientCallBack.done(returnedClient);
+            super.onPostExecute(returnedClient);
+        }
+
+    }
+
+    /* Stores Journey Data on the Server */
 
     public void storeJourneyDataInBackground(Journey journey, GetJourneyCallBack callback) {
         progressDialog.show();
-        new StoreOrderDataAsyncTask(journey, callback).execute();
+        new StoreJourneyDataAsyncTask(journey, callback).execute();
     }
 
-    public void fetchJourneyDataInBackground(Client client, GetJourneyCallBack journeyCallBack) {
-        progressDialog.show();
-        new fetchJourneyDataAsyncTask(client, journeyCallBack).execute();
-    }
-
-    public void fetchDriverDataInBackground(Journey journey, GetDriverCallBack driverCallBack) {
-        progressDialog.show();
-        new fetchDriverDataAsyncTask(journey, driverCallBack).execute();
-    }
-
-    public class StoreOrderDataAsyncTask extends AsyncTask<Void, Void, Void> {
+    public class StoreJourneyDataAsyncTask extends AsyncTask<Void, Void, Void> {
         Journey journey;
         GetJourneyCallBack callback;
 
-        public StoreOrderDataAsyncTask(Journey journey, GetJourneyCallBack callback) {
+        public StoreJourneyDataAsyncTask(Journey journey, GetJourneyCallBack callback) {
             this.journey = journey;
             this.callback = callback;
         }
@@ -131,6 +269,12 @@ public class ServerRequest {
             progressDialog.dismiss();
             callback.saveJourney(null);
         }
+    }
+
+
+    public void fetchJourneyDataInBackground(Client client, GetJourneyCallBack journeyCallBack) {
+        progressDialog.show();
+        new fetchJourneyDataAsyncTask(client, journeyCallBack).execute();
     }
 
     public class fetchJourneyDataAsyncTask extends AsyncTask<Void, Void, ArrayList<Journey>> {
@@ -215,153 +359,11 @@ public class ServerRequest {
 
     }
 
-    public class StoreClientDataAsyncTask extends AsyncTask<Void ,Void, Void >{
-        Client client;
-        GetClientCallBack clientCallBack;
+    /* Fetch Driver on the Server */
 
-        public StoreClientDataAsyncTask(Client client, GetClientCallBack clientCallBack){
-            this.client = client;
-            this.clientCallBack = clientCallBack;
-        }
-
-        @Override
-        protected Void doInBackground(Void... params) {
-
-            Map<String,String> dataToSend = new HashMap<>();
-            dataToSend.put("name", client.name);
-            dataToSend.put("username", client.username);
-            dataToSend.put("password", client.password);
-            dataToSend.put("age", client.age + "");
-
-            String encodedStr = getEncodedData(dataToSend);
-            BufferedReader reader = null;
-
-            try {
-                URL url = new URL(SERVER_ADDRESS + "Register.php");
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-
-                con.setRequestMethod("POST");
-                con.setDoOutput(true);
-
-                OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream());
-
-                writer.write(encodedStr);
-                writer.flush();
-
-                StringBuilder sb = new StringBuilder();
-                reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
-
-                String line;
-                while((line = reader.readLine()) != null) {
-                    sb.append(line).append("\n");
-                }
-
-                line = sb.toString();
-
-                Log.i("custom_check", "The values received in the store part are as follows:");
-                Log.i("custom_check", line);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                if(reader != null) {
-                    try {
-                        reader.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-
-            return null;
-        }
-
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            progressDialog.dismiss();
-            clientCallBack.done(null);
-            super.onPostExecute(aVoid);
-        }
-    }
-
-    public class fetchClientDataAsyncTask extends AsyncTask<Void ,Void, Client > {
-        Client client;
-        GetClientCallBack clientCallBack;
-
-        public fetchClientDataAsyncTask(Client client, GetClientCallBack clientCallBack){
-            this.client = client;
-            this.clientCallBack = clientCallBack;
-        }
-
-        @Override
-        protected Client doInBackground(Void... params) {
-
-
-            Map<String,String> dataToSend = new HashMap<>();
-            dataToSend.put("name", client.name);
-            dataToSend.put("age", client.age + "");
-            dataToSend.put("username", client.username);
-            dataToSend.put("password", client.password);
-
-            String encodedStr = getEncodedData(dataToSend);
-            BufferedReader reader = null;
-            Client returnedClient = null;
-
-            try {
-                URL url = new URL(SERVER_ADDRESS + "FetchUserData.php");
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-
-                con.setRequestMethod("POST");
-                con.setDoOutput(true);
-
-                OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream());
-
-                writer.write(encodedStr);
-                writer.flush();
-
-                StringBuilder sb = new StringBuilder();
-                reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
-
-                String line;
-                while((line = reader.readLine()) != null) {
-                    sb.append(line).append("\n");
-                }
-                line = sb.toString();
-                Log.i("custom_check", "The values received in the store part are as follows:");
-                Log.i("custom_check",line);
-                Log.i("LENGTH",line.length() + "");
-
-                if(line.length() > 10) {
-                    JSONObject jsonObject = new JSONObject(line);
-                    String name = jsonObject.getString("name");
-                    int age = jsonObject.getInt("age");
-                    int id = jsonObject.getInt("id");
-                    returnedClient = new Client(id, name, client.username, client.password, age);
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                if(reader != null) {
-                    try {
-                        reader.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-
-            return returnedClient;
-        }
-
-        @Override
-        protected void onPostExecute(Client returnedClient) {
-            progressDialog.dismiss();
-            clientCallBack.done(returnedClient);
-            super.onPostExecute(returnedClient);
-        }
-
+    public void fetchDriverDataInBackground(Journey journey, GetDriverCallBack driverCallBack) {
+        progressDialog.show();
+        new fetchDriverDataAsyncTask(journey, driverCallBack).execute();
     }
 
     public class fetchDriverDataAsyncTask extends AsyncTask<Void, Void, ArrayList<Driver>> {
@@ -455,6 +457,7 @@ public class ServerRequest {
             driverCallBack.done(returnedDrivers);
         }
     }
+
 
     protected String getEncodedData(Map<String, String> data) {
         StringBuilder sb = new StringBuilder();
