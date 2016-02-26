@@ -20,23 +20,24 @@ public class JourneyLocalStore {
     public void storeJourneyData(Journey journey) {
         // allows edits to shared preferences
         SharedPreferences.Editor spEditor = JourneyLocalDatabase.edit();
-        spEditor.putString("pickup", journey.pickup);
-        spEditor.putString("destination", journey.destination);
+        putDouble(spEditor, "pickupLat", journey.pickupLat);
+        putDouble(spEditor, "pickupLong", journey.pickupLong);
+        putDouble(spEditor, "destinationLat", journey.destinationLat);
+        putDouble(spEditor, "destinationLong", journey.destinationLong);
         spEditor.putString("timing", journey.timing);
         spEditor.putString("payment", journey.payment);
-        spEditor.putInt("clientID", clientID);
+        spEditor.putInt("clientID", journey.clientID);
         // commit changes
         spEditor.commit();
     }
 
-    public Journey getClientJourney(int clientID) {
-        String pickup = JourneyLocalDatabase.getString("pickup", "");
-        String destination = JourneyLocalDatabase.getString("destination", "");
-        String timing = JourneyLocalDatabase.getString("timing", "");
-        String payment = JourneyLocalDatabase.getString("payment", "");
 
-        Journey storedJourney = new Journey(pickup, destination, timing, payment, clientID);
-        return storedJourney;
+    SharedPreferences.Editor putDouble(final SharedPreferences.Editor edit, final String key, final double value) {
+        return edit.putLong(key, Double.doubleToRawLongBits(value));
+    }
+
+    double getDouble(final SharedPreferences prefs, final String key, final double defaultValue) {
+        return Double.longBitsToDouble(prefs.getLong(key, Double.doubleToLongBits(defaultValue)));
     }
 
 }

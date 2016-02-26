@@ -56,7 +56,7 @@ public class TaxiAlertIntentService extends IntentService {
             // TODO: change notification to APP LOGO
             NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this);
             mBuilder.setSmallIcon(R.drawable.car_marker)
-                    .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.car_marker))
+                    .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_driver_launcher))
                     .setColor(getResources().getColor(R.color.RED))
                     .setContentTitle("SudoUber Taxi Booking!")
                     .setContentIntent(contentIntent)

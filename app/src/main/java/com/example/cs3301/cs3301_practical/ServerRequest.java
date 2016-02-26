@@ -6,6 +6,7 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -16,6 +17,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,9 +54,9 @@ public class ServerRequest {
         new StoreOrderDataAsyncTask(journey, callback).execute();
     }
 
-    public void fetchJourneyDataInBackground(Journey journey, GetJourneyCallBack journeyCallBack) {
+    public void fetchJourneyDataInBackground(Client client, GetJourneyCallBack journeyCallBack) {
         progressDialog.show();
-        new fetchJourneyDataAsyncTask(journey, journeyCallBack).execute();
+        new fetchJourneyDataAsyncTask(client, journeyCallBack).execute();
     }
 
     /* Store and Fetch Driver Details */
@@ -81,8 +83,10 @@ public class ServerRequest {
         @Override
         protected Void doInBackground(Void... params) {
             Map<String, String> dataToSend = new HashMap<>();
-            dataToSend.put("pickup", journey.pickup);
-            dataToSend.put("destination", journey.destination);
+            dataToSend.put("pickupLat", String.valueOf(journey.pickupLat));
+            dataToSend.put("pickupLong", String.valueOf(journey.pickupLong));
+            dataToSend.put("destinationLat", String.valueOf(journey.destinationLat));
+            dataToSend.put("destinationLong", String.valueOf(journey.destinationLong));
             dataToSend.put("timing", journey.timing);
             dataToSend.put("payment", journey.payment);
             dataToSend.put("clientID", String.valueOf(journey.clientID));
@@ -132,32 +136,28 @@ public class ServerRequest {
         protected void onPostExecute(Void avoid) {
             super.onPostExecute(avoid);
             progressDialog.dismiss();
-            callback.done(null);
+            callback.saveJourney(null);
         }
     }
 
-    public class fetchJourneyDataAsyncTask extends AsyncTask<Void, Void, Journey> {
-        Journey journey;
+    public class fetchJourneyDataAsyncTask extends AsyncTask<Void, Void, ArrayList<Journey>> {
+        Client client;
         GetJourneyCallBack journeyCallBack;
 
-        public fetchJourneyDataAsyncTask(Journey journey, GetJourneyCallBack journeyCallBack) {
-            this.journey = journey;
+        public fetchJourneyDataAsyncTask(Client client, GetJourneyCallBack journeyCallBack) {
+            this.client = client;
             this.journeyCallBack = journeyCallBack;
         }
 
         @Override
-        protected Journey doInBackground(Void... params) {
+        protected ArrayList<Journey> doInBackground(Void... params) {
 
             Map<String, String> dataToSend = new HashMap<>();
-            dataToSend.put("pickup", journey.pickup);
-            dataToSend.put("destination", "" + journey.destination);
-            dataToSend.put("timing", "" + journey.timing);
-            dataToSend.put("payment", journey.payment);
-            dataToSend.put("clientID", "" + journey.clientID);
+            dataToSend.put("clientID", String.valueOf(client.id));
 
             String encodedStr = getEncodedData(dataToSend);
             BufferedReader reader = null;
-            Journey returnedJourney = null;
+            ArrayList<Journey> returnedJournies = new ArrayList<>();
 
             try {
                 URL url = new URL(SERVER_ADDRESS + "FetchJourneyData.php");
@@ -179,19 +179,23 @@ public class ServerRequest {
                     sb.append(line).append("\n");
                 }
                 line = sb.toString();
-                Log.i("custom_check", "The values received in the store part are as follows:");
-                Log.i("custom_check", line);
-                Log.i("LENGTH", line.length() + "");
+                Log.e("fetch", "The values received in the store part are as follows:");
+                Log.e("fetch", line);
 
                 if (line.length() > 10) {
-                    JSONObject jsonObject = new JSONObject(line);
-                    String pickup = jsonObject.getString("pickup");
-                    String destination = jsonObject.getString("destination");
-                    String timing = jsonObject.getString("timing");
-                    String payment = jsonObject.getString("payment");
-                    int clientID = jsonObject.getInt("clientID");
-                    // TODO: ClientID
-                    returnedJourney = new Journey(pickup, destination, timing, payment, clientID);
+                    JSONArray jsonArray = new JSONArray(line);
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        JSONObject jsonObject = jsonArray.getJSONObject(i);
+                        Double pickupLat = jsonObject.getDouble("pickupLat");
+                        Double pickupLong = jsonObject.getDouble("pickupLong");
+                        Double destinationLat = jsonObject.getDouble("destinationLat");
+                        Double destinationLong = jsonObject.getDouble("destinationLong");
+                        String timing = jsonObject.getString("timing");
+                        String payment = jsonObject.getString("payment");
+                        int journeyID = jsonObject.getInt("id");
+                        Journey journey = new Journey(pickupLat, pickupLong, destinationLat, destinationLong, timing, payment, journeyID);
+                        returnedJournies.add(journey);
+                    }
                 }
 
             } catch (Exception e) {
@@ -205,16 +209,18 @@ public class ServerRequest {
                     }
                 }
             }
-
-            return returnedJourney;
+//            for(int i =0; i<returnedJournies.size(); i++){
+//                Log.e("Array list vals", String.valueOf(returnedJournies.get(i).clientID));
+//            }
+            return returnedJournies;
         }
 
 
         @Override
-        protected void onPostExecute(Journey returnedJourney) {
+        protected void onPostExecute(ArrayList<Journey> returnedJournies) {
+            super.onPostExecute(returnedJournies);
+            journeyCallBack.getJournies(returnedJournies);
             progressDialog.dismiss();
-            journeyCallBack.done(returnedJourney);
-            super.onPostExecute(returnedJourney);
         }
 
     }

@@ -234,37 +234,38 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     String finalAddress = getFullAddress(currentLat, currentLong);
                     Log.e("FINAL ADDRESS: ", finalAddress);
 
+                    // Get the values of Pickup and Dest
+                    String strPickupAddress = etFrom.getText().toString();
+                    String strDestinationAddress = etDestination.getText().toString();
+
+                    // convert to lat lng vals
+                    LatLng pickupLatLng = getLocationFromAddress(this, strPickupAddress);
+                    LatLng destLatLng = getLocationFromAddress(this, strDestinationAddress);
+
                     if (finalAddress != null) {
-                        Journey journey = new Journey(finalAddress, destination, pickupTime, payment, clientID);
+                        Journey journey = new Journey(pickupLatLng.latitude, pickupLatLng.longitude, destLatLng.latitude, destLatLng.longitude, pickupTime, payment, clientID);
                         storeJourney(journey);
                     } else {
                         Log.e("Error", "FinalAddress was null");
                     }
-                }
-                // Get the values of Pickup and Dest
-                String strPickupAddress = etFrom.getText().toString();
-                String strDestinationAddress = etDestination.getText().toString();
 
-                // convert to lat lng vals
-                LatLng pickupLatLng = getLocationFromAddress(this, strPickupAddress);
-                LatLng destLatLng = getLocationFromAddress(this, strDestinationAddress);
+                    // Getting URL to the Google Directions API
+                    String url = getDirectionsUrl(pickupLatLng, destLatLng);
 
-                // Getting URL to the Google Directions API
-                String url = getDirectionsUrl(pickupLatLng, destLatLng);
+                    DownloadTask downloadTask = new DownloadTask();
 
-                DownloadTask downloadTask = new DownloadTask();
+                    // Start downloading json data from Google Directions API
+                    downloadTask.execute(url);
 
-                // Start downloading json data from Google Directions API
-                downloadTask.execute(url);
-
-                String jsonString = new String("{ \"name\": \"msime\"}");
-                try {
-                    JSONObject jsonClient = new JSONObject(jsonString);
-                    Intent serviceIntent = new Intent(this, TaxiAlertIntentService.class);
-                    serviceIntent.putExtra("bookTrip", jsonClient.toString());
-                    startService(serviceIntent);
-                } catch (JSONException e) {
-                    e.printStackTrace();
+                    String jsonString = new String("{ \"name\": \"msime\"}");
+                    try {
+                        JSONObject jsonClient = new JSONObject(jsonString);
+                        Intent serviceIntent = new Intent(this, TaxiAlertIntentService.class);
+                        serviceIntent.putExtra("bookTrip", jsonClient.toString());
+                        startService(serviceIntent);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 }
                 break;
 
@@ -287,24 +288,26 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 mI.inflate(R.menu.popup_history, histPopupMenu.getMenu());
 
                 Log.e("HERE", "Created History Popup");
-                //get client info
-
-                clientID = clientLocalStore.getLoggedInClient().id;
-                Journey journey = new Journey("lol", "0", "YYYY", "n", clientID);
 
                 // Fetch Journey details from Server
                 ServerRequest serverRequests = new ServerRequest(this);
-                serverRequests.fetchJourneyDataInBackground(journey, new GetJourneyCallBack() {
+                serverRequests.fetchJourneyDataInBackground(clientLocalStore.getLoggedInClient(), new GetJourneyCallBack() {
                     @Override
-                    public void done(Journey returnedJourney) {
-                        histPopupMenu.getMenu().findItem(R.id.id_pickup).setTitle("Pickup: " + returnedJourney.pickup);
-                        histPopupMenu.getMenu().findItem(R.id.id_destination).setTitle("Destination: " + returnedJourney.destination);
-                        histPopupMenu.getMenu().findItem(R.id.id_timing).setTitle("When: " + returnedJourney.timing);
-                        histPopupMenu.getMenu().findItem(R.id.id_payment).setTitle("Payment: " + returnedJourney.payment);
+                    public void saveJourney(Journey returnedJourney) {
+                    }
+
+                    @Override
+                    public void getJournies(ArrayList<Journey> journeys) {
+                        if (journeys.size() == 0 || journeys == null) {
+                            // handle error
+                        } else {
+                            for (int i = 0; i < journeys.size(); i++) {
+                                Log.e("Array list", String.valueOf(journeys.get(i).clientID));
+                                setJourneyHistory(journeys.get(i));
+                            }
+                        }
                     }
                 });
-
-                histPopupMenu.show();
                 break;
 
             case R.id.ibTime:
@@ -322,6 +325,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 etDestination.setText("");
                 break;
         }
+    }
+
+    private void setJourneyHistory(Journey journey) {
+        String pickupLoc = getSmallAddress(journey.pickupLat, journey.pickupLong);
+        String destLoc = getSmallAddress(journey.destinationLat, journey.destinationLong);
+
+        histPopupMenu.getMenu().add(pickupLoc + " ~ " + destLoc);
+        histPopupMenu.show();
     }
 
     private String getDirectionsUrl(LatLng pickup, LatLng dest) {
@@ -559,11 +570,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         ServerRequest serverRequest = new ServerRequest(this);
         serverRequest.storeJourneyDataInBackground(journey, new GetJourneyCallBack() {
             @Override
-            public void done(Journey returnedOrder) {
+            public void saveJourney(Journey journey) {
                 AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
                 dialogBuilder.setMessage("Order stored");
                 dialogBuilder.setPositiveButton("OK", null);
                 dialogBuilder.show();
+            }
+
+            @Override
+            public void getJournies(ArrayList<Journey> journeys) {
             }
         });
     }
@@ -591,6 +606,28 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         return p1;
+    }
+
+    private String getSmallAddress(double latitude, double longitude) {
+        Geocoder geocoder;
+        List<Address> addresses = null;
+        geocoder = new Geocoder(this, Locale.getDefault());
+
+        try {
+            addresses = geocoder.getFromLocation(latitude, longitude, 1);
+            if (addresses != null) {
+                StringBuilder sb = new StringBuilder();
+                //Address Line
+                for (int i = 0; i < 1; i++) {
+                    if (addresses.get(0).getAddressLine(i) != null)
+                        sb.append(addresses.get(0).getAddressLine(i)).append("\n");
+                }
+                return sb.toString();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private String getFullAddress(double latitude, double longitude) {
